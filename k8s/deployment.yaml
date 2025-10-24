@@ -1,0 +1,97 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bugbounty-tracker
+  labels:
+    app: bugbounty-tracker
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: bugbounty-tracker
+  template:
+    metadata:
+      labels:
+        app: bugbounty-tracker
+    spec:
+      containers:
+      - name: bugbounty-tracker
+        image: IMAGE_PLACEHOLDER
+        ports:
+        - containerPort: 80
+          name: http
+          protocol: TCP
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 101
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+              - ALL
+            add:
+              - NET_BIND_SERVICE
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: bugbounty-tracker-service
+  labels:
+    app: bugbounty-tracker
+spec:
+  type: LoadBalancer
+  selector:
+    app: bugbounty-tracker
+  ports:
+  - port: 80
+    targetPort: 80
+    protocol: TCP
+    name: http
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: bugbounty-tracker-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - bugbounty.example.com
+    secretName: bugbounty-tls
+  rules:
+  - host: bugbounty.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: bugbounty-tracker-service
+            port:
+              number: 80
