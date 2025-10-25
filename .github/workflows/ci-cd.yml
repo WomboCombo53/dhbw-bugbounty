@@ -265,19 +265,6 @@ jobs:
           echo "critical_vulns=$CRITICAL_VULNS" >> $GITHUB_OUTPUT
           
           echo "Found $CRITICAL_VULNS critical and $HIGH_VULNS high severity vulnerabilities in container"
-          
-          # Show dependency tree in console if vulnerabilities found
-          if [ "$CRITICAL_VULNS" -gt 0 ] || [ "$HIGH_VULNS" -gt 0 ]; then
-            echo ""
-            echo "=== Dependency Tree with Vulnerabilities ==="
-            docker run --rm \
-              -v /var/run/docker.sock:/var/run/docker.sock \
-              aquasec/trivy image \
-              --format table \
-              --table-mode detailed
-              --severity HIGH,CRITICAL \
-              ${{ fromJSON(steps.meta.outputs.json).tags[0] }}
-          fi
 
       - name: Upload container scan results
         uses: actions/upload-artifact@v5
