@@ -20,10 +20,10 @@ jobs:
       contents: read
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: '20'
 
@@ -38,7 +38,7 @@ jobs:
           upload-artifact: true
 
       - name: Upload SBOM
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: sbom
           path: sbom.json
@@ -52,7 +52,7 @@ jobs:
       contents: read
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
@@ -71,7 +71,7 @@ jobs:
       contents: read
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
@@ -90,10 +90,10 @@ jobs:
       security-events: write
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: '20'
 
@@ -123,7 +123,7 @@ jobs:
 
       - name: Show dependency tree for vulnerabilities
         if: always()
-        uses: aquasecurity/trivy-action@0.33.1
+        uses: aquasecurity/trivy-action@v0
         with:
           scan-type: 'fs'
           scan-ref: '.'
@@ -145,7 +145,7 @@ jobs:
           fi
 
       - name: Upload audit results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         if: always()
         with:
           name: audit-results
@@ -162,10 +162,10 @@ jobs:
       contents: read
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: '20'
 
@@ -176,7 +176,7 @@ jobs:
         run: npm run build
 
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: build-artifacts
           path: dist/
@@ -196,7 +196,7 @@ jobs:
       image-tag: ${{ steps.meta.outputs.tags }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -248,18 +248,6 @@ jobs:
         with:
           sarif_file: 'trivy-image-results.sarif'
 
-      - name: Show container dependency tree for vulnerabilities
-        if: always()
-        uses: aquasecurity/trivy-action@0.33.1
-        with:
-          image-ref: ${{ fromJSON(steps.meta.outputs.json).tags[0] }}
-          format: 'table'
-          severity: 'CRITICAL,HIGH'
-          dependency-tree: true
-        env:
-          TRIVY_USERNAME: ${{ github.actor }}
-          TRIVY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Check container vulnerabilities
         id: check-container-vulns
         run: |
@@ -289,11 +277,12 @@ jobs:
               --format table \
               --severity HIGH,CRITICAL \
               --dependency-tree \
+              
               ${{ fromJSON(steps.meta.outputs.json).tags[0] }}
           fi
 
       - name: Upload container scan results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         if: always()
         with:
           name: container-scan-results
@@ -355,12 +344,12 @@ jobs:
       contents: read
     steps:
       - name: Download audit results
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: audit-results
 
       - name: Download container scan results
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: container-scan-results
 
@@ -426,7 +415,7 @@ jobs:
       pull-requests: write
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Create Kubernetes manifests
         env:
