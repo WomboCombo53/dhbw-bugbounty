@@ -131,7 +131,7 @@ jobs:
           severity: 'CRITICAL,HIGH'
           dependency-tree: true
 
-      - name: Check for high severity vulnerabilities
+      - name: Check for high severity vulnerabilities via npm audit
         id: check-vulns
         run: |
           npm audit --audit-level=high --json > audit-check.json || true
@@ -277,7 +277,6 @@ jobs:
               --format table \
               --severity HIGH,CRITICAL \
               --dependency-tree \
-              
               ${{ fromJSON(steps.meta.outputs.json).tags[0] }}
           fi
 
