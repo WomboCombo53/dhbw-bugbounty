@@ -276,7 +276,6 @@ jobs:
               --format table \
               --table-mode detailed
               --severity HIGH,CRITICAL \
-              --show-suppressed \
               ${{ fromJSON(steps.meta.outputs.json).tags[0] }}
           fi
 
