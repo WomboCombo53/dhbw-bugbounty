@@ -121,6 +121,16 @@ jobs:
         with:
           sarif_file: 'trivy-results.sarif'
 
+      - name: Show dependency tree for vulnerabilities
+        if: always()
+        uses: aquasecurity/trivy-action@0.33.1
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'table'
+          severity: 'CRITICAL,HIGH'
+          dependency-tree: true
+
       - name: Check for high severity vulnerabilities
         id: check-vulns
         run: |
@@ -238,6 +248,18 @@ jobs:
         with:
           sarif_file: 'trivy-image-results.sarif'
 
+      - name: Show container dependency tree for vulnerabilities
+        if: always()
+        uses: aquasecurity/trivy-action@0.33.1
+        with:
+          image-ref: ${{ fromJSON(steps.meta.outputs.json).tags[0] }}
+          format: 'table'
+          severity: 'CRITICAL,HIGH'
+          dependency-tree: true
+        env:
+          TRIVY_USERNAME: ${{ github.actor }}
+          TRIVY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Check container vulnerabilities
         id: check-container-vulns
         run: |
@@ -245,9 +267,8 @@ jobs:
           docker run --rm \
             -v /var/run/docker.sock:/var/run/docker.sock \
             aquasec/trivy image \
-            --format table \
+            --format json \
             --severity HIGH,CRITICAL \
-            --dependency-tree \
             ${{ fromJSON(steps.meta.outputs.json).tags[0] }} > trivy-report.json
           
           HIGH_VULNS=$(jq '[.Results[]?.Vulnerabilities[]? | select(.Severity == "HIGH")] | length' trivy-report.json)
@@ -257,6 +278,19 @@ jobs:
           echo "critical_vulns=$CRITICAL_VULNS" >> $GITHUB_OUTPUT
           
           echo "Found $CRITICAL_VULNS critical and $HIGH_VULNS high severity vulnerabilities in container"
+          
+          # Show dependency tree in console if vulnerabilities found
+          if [ "$CRITICAL_VULNS" -gt 0 ] || [ "$HIGH_VULNS" -gt 0 ]; then
+            echo ""
+            echo "=== Dependency Tree with Vulnerabilities ==="
+            docker run --rm \
+              -v /var/run/docker.sock:/var/run/docker.sock \
+              aquasec/trivy image \
+              --format table \
+              --severity HIGH,CRITICAL \
+              --dependency-tree \
+              ${{ fromJSON(steps.meta.outputs.json).tags[0] }}
+          fi
 
       - name: Upload container scan results
         uses: actions/upload-artifact@v4
