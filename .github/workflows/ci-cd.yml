@@ -287,23 +287,17 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Sign container image
-        env:
-          DIGEST: ${{ needs.container-build.outputs.image-digest }}
-          IMAGE_NAME: ${{ env.IMAGE_NAME }}
-          REGISTRY: ${{ env.REGISTRY }}
         run: |
-          IMAGE_REF="${REGISTRY}/${IMAGE_NAME}@${DIGEST}"
+          REPO_LOWER=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          IMAGE_REF="${{ env.REGISTRY }}/${REPO_LOWER}@${{ needs.container-build.outputs.image-digest }}"
           echo "Signing image: ${IMAGE_REF}"
           cosign sign --yes "${IMAGE_REF}"
 
       - name: Verify signature
         id: verify
-        env:
-          DIGEST: ${{ needs.container-build.outputs.image-digest }}
-          IMAGE_NAME: ${{ env.IMAGE_NAME }}
-          REGISTRY: ${{ env.REGISTRY }}
         run: |
-          IMAGE_REF="${REGISTRY}/${IMAGE_NAME}@${DIGEST}"
+          REPO_LOWER=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          IMAGE_REF="${{ env.REGISTRY }}/${REPO_LOWER}@${{ needs.container-build.outputs.image-digest }}"
           echo "Verifying signature for: ${IMAGE_REF}"
           if cosign verify \
             --certificate-identity-regexp="https://github.com/${{ github.repository }}/*" \
