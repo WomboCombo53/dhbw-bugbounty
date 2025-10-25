@@ -289,20 +289,26 @@ jobs:
       - name: Sign container image
         env:
           DIGEST: ${{ needs.container-build.outputs.image-digest }}
+          IMAGE_NAME: ${{ env.IMAGE_NAME }}
+          REGISTRY: ${{ env.REGISTRY }}
         run: |
-          echo "Signing image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${DIGEST}"
-          cosign sign --yes ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${DIGEST}
+          IMAGE_REF="${REGISTRY}/${IMAGE_NAME}@${DIGEST}"
+          echo "Signing image: ${IMAGE_REF}"
+          cosign sign --yes "${IMAGE_REF}"
 
       - name: Verify signature
         id: verify
         env:
           DIGEST: ${{ needs.container-build.outputs.image-digest }}
+          IMAGE_NAME: ${{ env.IMAGE_NAME }}
+          REGISTRY: ${{ env.REGISTRY }}
         run: |
-          echo "Verifying signature for: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${DIGEST}"
+          IMAGE_REF="${REGISTRY}/${IMAGE_NAME}@${DIGEST}"
+          echo "Verifying signature for: ${IMAGE_REF}"
           if cosign verify \
             --certificate-identity-regexp="https://github.com/${{ github.repository }}/*" \
             --certificate-oidc-issuer=https://token.actions.githubusercontent.com \
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${DIGEST}; then
+            "${IMAGE_REF}"; then
             echo "verified=true" >> $GITHUB_OUTPUT
             echo "✅ Signature verified successfully"
           else
