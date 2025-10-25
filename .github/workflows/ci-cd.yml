@@ -183,7 +183,7 @@ jobs:
       security-events: write
     outputs:
       image-digest: ${{ steps.build-push.outputs.digest }}
-      image-tag: a${{ steps.meta.outputs.tags }}
+      image-tag: ${{ steps.meta.outputs.tags }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -208,7 +208,7 @@ jobs:
             type=ref,event=pr
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
-            type=sha,prefix={{branch}}-
+            type=sha
             type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Build and push Docker image
