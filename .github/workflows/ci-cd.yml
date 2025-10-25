@@ -273,7 +273,8 @@ jobs:
             docker run --rm \
               -v /var/run/docker.sock:/var/run/docker.sock \
               aquasec/trivy image \
-              --format fs \
+              --format table \
+              --table-mode detailed
               --severity HIGH,CRITICAL \
               --show-suppressed \
               ${{ fromJSON(steps.meta.outputs.json).tags[0] }}
