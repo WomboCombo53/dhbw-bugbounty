@@ -247,6 +247,7 @@ jobs:
             aquasec/trivy image \
             --format json \
             --severity HIGH,CRITICAL \
+            --dependency-tree \
             ${{ fromJSON(steps.meta.outputs.json).tags[0] }} > trivy-report.json
           
           HIGH_VULNS=$(jq '[.Results[]?.Vulnerabilities[]? | select(.Severity == "HIGH")] | length' trivy-report.json)
