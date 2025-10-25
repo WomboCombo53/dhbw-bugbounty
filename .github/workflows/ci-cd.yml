@@ -277,6 +277,7 @@ jobs:
               --format table \
               --severity HIGH,CRITICAL \
               --dependency-tree \
+              --show-suppressed \
               ${{ fromJSON(steps.meta.outputs.json).tags[0] }}
           fi
 
