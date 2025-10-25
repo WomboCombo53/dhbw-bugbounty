@@ -183,7 +183,7 @@ jobs:
       security-events: write
     outputs:
       image-digest: ${{ steps.build-push.outputs.digest }}
-      image-tag: ${{ steps.meta.outputs.tags }}
+      image-tag: a${{ steps.meta.outputs.tags }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
