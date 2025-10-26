@@ -192,7 +192,7 @@ The pipeline enforces the following quality gates:
 
 - **Frontend**: React 18, Vite
 - **Styling**: CSS3 with responsive design
-- **Container**: Docker, nginx Alpine
+- **Container**: Docker, nginx
 - **CI/CD**: GitHub Actions
 - **Security Tools**:
   - Gitleaks (secret scanning)
