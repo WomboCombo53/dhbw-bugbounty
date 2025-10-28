@@ -11,10 +11,14 @@ jobs:
   # Step 1: Generate SBOM
   sbom:
     uses: ./.github/workflows/sbom.yml
+    permissions:
+      contents: read
 
   # Step 2: Secret Scanning
   secret-scan:
     uses: ./.github/workflows/secret-scan.yml
+    permissions:
+      contents: read
 
   # Step 3: SAST with CodeQL
   codeql:
@@ -22,14 +26,20 @@ jobs:
     permissions:
       security-events: write
       actions: read
+      contents: read
 
   # Step 4: SCA - Dependency Scanning
   sca:
     uses: ./.github/workflows/sca.yml
+    permissions:
+      contents: read
+      security-events: write
 
   # Step 5: Build Application
   build:
     uses: ./.github/workflows/build.yml
+    permissions:
+      contents: read
 
   # Step 6: Build and Scan Container Image
   container-build:
