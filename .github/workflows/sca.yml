@@ -61,9 +61,9 @@ jobs:
           echo "high_vulns=$HIGH_VULNS" >> $GITHUB_OUTPUT
           echo "critical_vulns=$CRITICAL_VULNS" >> $GITHUB_OUTPUT
           
-          if [ "$CRITICAL_VULNS" -gt 0 ] || [ "$HIGH_VULNS" -gt 0 ]; then
-            echo "Found $CRITICAL_VULNS critical and $HIGH_VULNS high severity vulnerabilities"
-          fi
+          echo "## Dependency Vulnerability Scan 
+          🔓 Found $CRITICAL_VULNS critical and $HIGH_VULNS high severity vulnerabilities" >> $GITHUB_STEP_SUMMARY
+
 
       - name: Upload audit results
         uses: actions/upload-artifact@v5

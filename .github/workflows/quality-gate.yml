@@ -74,3 +74,5 @@ jobs:
           
           echo ""
           echo "🎉 All quality gate checks passed!"
+
+          echo "✅ All quality gate checks passed!" >> $GITHUB_STEP_SUMMARY
