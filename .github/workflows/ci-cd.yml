@@ -7,434 +7,62 @@ on:
     branches: [ main, master ]
   workflow_dispatch:
 
-env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
-
 jobs:
   # Step 1: Generate SBOM
   sbom:
-    name: Generate SBOM
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v5
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: '22'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Generate SBOM with Syft
-        uses: anchore/sbom-action@v0
-        with:
-          format: cyclonedx-json
-          output-file: sbom.json
-          upload-artifact: true
-
-      - name: Upload SBOM
-        uses: actions/upload-artifact@v5
-        with:
-          name: sbom
-          path: sbom.json
-          retention-days: 30
+    uses: ./.github/workflows/sbom.yml
 
   # Step 2: Secret Scanning
   secret-scan:
-    name: Secret Scanning
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v5
-        with:
-          fetch-depth: 0
-
-      - name: Run Gitleaks
-        uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    uses: ./.github/workflows/secret-scan.yml
 
   # Step 3: SAST with CodeQL
   codeql:
-    name: SAST - CodeQL
-    runs-on: ubuntu-latest
-    permissions:
-      security-events: write
-      actions: read
-      contents: read
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v5
-
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
-        with:
-          languages: javascript
-
-      - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
+    uses: ./.github/workflows/codeql.yml
 
   # Step 4: SCA - Dependency Scanning
   sca:
-    name: SCA - Dependency Scanning
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      security-events: write
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v5
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: '20'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Run npm audit
-        id: npm-audit
-        run: |
-          npm audit --audit-level=moderate --json > audit-results.json || true
-          cat audit-results.json
-
-      - name: Scan dependencies with Trivy
-        uses: aquasecurity/trivy-action@0.33.1
-        with:
-          scan-type: 'fs'
-          scan-ref: '.'
-          format: 'sarif'
-          output: 'trivy-results.sarif'
-          severity: 'CRITICAL,HIGH'
-
-      - name: Upload Trivy results to GitHub Security
-        uses: github/codeql-action/upload-sarif@v3
-        if: always()
-        with:
-          sarif_file: 'trivy-results.sarif'
-
-      - name: Show dependency tree for vulnerabilities
-        if: always()
-        uses: aquasecurity/trivy-action@0.33.1
-        with:
-          scan-type: 'fs'
-          scan-ref: '.'
-          format: 'table'
-          severity: 'CRITICAL,HIGH'
-          dependency-tree: true
-
-      - name: Check for high severity vulnerabilities via npm audit
-        id: check-vulns
-        run: |
-          npm audit --audit-level=high --json > audit-check.json || true
-          HIGH_VULNS=$(jq '.metadata.vulnerabilities.high // 0' audit-check.json)
-          CRITICAL_VULNS=$(jq '.metadata.vulnerabilities.critical // 0' audit-check.json)
-          echo "high_vulns=$HIGH_VULNS" >> $GITHUB_OUTPUT
-          echo "critical_vulns=$CRITICAL_VULNS" >> $GITHUB_OUTPUT
-          
-          if [ "$CRITICAL_VULNS" -gt 0 ] || [ "$HIGH_VULNS" -gt 0 ]; then
-            echo "Found $CRITICAL_VULNS critical and $HIGH_VULNS high severity vulnerabilities"
-          fi
-
-      - name: Upload audit results
-        uses: actions/upload-artifact@v5
-        if: always()
-        with:
-          name: audit-results
-          path: |
-            audit-results.json
-            audit-check.json
+    uses: ./.github/workflows/sca.yml
 
   # Step 5: Build Application
   build:
-    name: Build Application
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v5
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: '20'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build application
-        run: npm run build
-
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v5
-        with:
-          name: build-artifacts
-          path: dist/
-          retention-days: 7
+    uses: ./.github/workflows/build.yml
 
   # Step 6: Build and Scan Container Image
   container-build:
-    name: Build & Scan Container
-    runs-on: ubuntu-latest
     needs: [build]
+    uses: ./.github/workflows/container-build.yml
     permissions:
       contents: read
       packages: write
       security-events: write
-    outputs:
-      image-digest: ${{ steps.build-push.outputs.digest }}
-      image-tag: ${{ steps.meta.outputs.tags }}
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v5
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Log in to Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Extract metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          tags: |
-            type=ref,event=branch
-            type=ref,event=pr
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=raw,value=latest,enable={{is_default_branch}}
-
-      - name: Build and push Docker image
-        id: build-push
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      - name: Scan container image with Trivy
-        uses: aquasecurity/trivy-action@0.33.1
-        with:
-          image-ref: ${{ fromJSON(steps.meta.outputs.json).tags[0] }}
-          format: 'sarif'
-          output: 'trivy-image-results.sarif'
-          severity: 'CRITICAL,HIGH'
-        env:
-          TRIVY_USERNAME: ${{ github.actor }}
-          TRIVY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload Trivy scan results
-        uses: github/codeql-action/upload-sarif@v3
-        if: always()
-        with:
-          sarif_file: 'trivy-image-results.sarif'
-
-      - name: Check container vulnerabilities
-        id: check-container-vulns
-        run: |
-          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
-          docker run --rm \
-            -v /var/run/docker.sock:/var/run/docker.sock \
-            aquasec/trivy image \
-            --format json \
-            --severity HIGH,CRITICAL \
-            ${{ fromJSON(steps.meta.outputs.json).tags[0] }} > trivy-report.json
-          
-          HIGH_VULNS=$(jq '[.Results[]?.Vulnerabilities[]? | select(.Severity == "HIGH")] | length' trivy-report.json)
-          CRITICAL_VULNS=$(jq '[.Results[]?.Vulnerabilities[]? | select(.Severity == "CRITICAL")] | length' trivy-report.json)
-          
-          echo "high_vulns=$HIGH_VULNS" >> $GITHUB_OUTPUT
-          echo "critical_vulns=$CRITICAL_VULNS" >> $GITHUB_OUTPUT
-          
-          echo "Found $CRITICAL_VULNS critical and $HIGH_VULNS high severity vulnerabilities in container"
-
-      - name: Upload container scan results
-        uses: actions/upload-artifact@v5
-        if: always()
-        with:
-          name: container-scan-results
-          path: trivy-report.json
 
   # Step 7: Sign Container Image
   sign-image:
-    name: Sign Container Image
-    runs-on: ubuntu-latest
     needs: [container-build]
+    uses: ./.github/workflows/sign-image.yml
     permissions:
       contents: read
       packages: write
       id-token: write
-    outputs:
-      signature-verified: ${{ steps.verify.outputs.verified }}
-    steps:
-      - name: Install Cosign
-        uses: sigstore/cosign-installer@v3
-
-      - name: Log in to Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Sign container image
-        run: |
-          REPO_LOWER=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
-          IMAGE_REF="${{ env.REGISTRY }}/${REPO_LOWER}@${{ needs.container-build.outputs.image-digest }}"
-          echo "Signing image: ${IMAGE_REF}"
-          cosign sign --yes "${IMAGE_REF}"
-
-      - name: Verify signature
-        id: verify
-        run: |
-          REPO_LOWER=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
-          IMAGE_REF="${{ env.REGISTRY }}/${REPO_LOWER}@${{ needs.container-build.outputs.image-digest }}"
-          echo "Verifying signature for: ${IMAGE_REF}"
-          if cosign verify \
-            --certificate-identity-regexp="https://github.com/${{ github.repository }}/*" \
-            --certificate-oidc-issuer=https://token.actions.githubusercontent.com \
-            "${IMAGE_REF}"; then
-            echo "verified=true" >> $GITHUB_OUTPUT
-            echo "✅ Signature verified successfully"
-          else
-            echo "verified=false" >> $GITHUB_OUTPUT
-            echo "❌ Signature verification failed"
-            exit 1
-          fi
+    with:
+      image-digest: ${{ needs.container-build.outputs.image-digest }}
 
   # Step 8: Quality Gate
   quality-gate:
-    name: Quality Gate
-    runs-on: ubuntu-latest
     needs: [secret-scan, sca, container-build, sign-image]
-    permissions:
-      contents: read
-    steps:
-      - name: Download audit results
-        uses: actions/download-artifact@v5
-        with:
-          name: audit-results
-
-      - name: Download container scan results
-        uses: actions/download-artifact@v5
-        with:
-          name: container-scan-results
-
-      - name: Evaluate Quality Gate
-        id: quality-gate
-        run: |
-          echo "=== Quality Gate Evaluation ==="
-          
-          # Check 1: Secrets (already failed if secrets found in secret-scan job)
-          echo "✅ Check 1: No secrets found (passed secret-scan job)"
-          
-          # Check 2: Check CVSS >= 7.0 vulnerabilities
-          echo "📊 Check 2: Checking for CVSS >= 7.0 vulnerabilities..."
-          
-          # Check npm audit results
-          if [ -f audit-check.json ]; then
-            HIGH_VULNS=$(jq '.metadata.vulnerabilities.high // 0' audit-check.json)
-            CRITICAL_VULNS=$(jq '.metadata.vulnerabilities.critical // 0' audit-check.json)
-            echo "  - NPM High vulnerabilities: $HIGH_VULNS"
-            echo "  - NPM Critical vulnerabilities: $CRITICAL_VULNS"
-            
-            if [ "$CRITICAL_VULNS" -gt 0 ] || [ "$HIGH_VULNS" -gt 0 ]; then
-              echo "❌ FAILED: Found vulnerabilities with CVSS >= 7.0 in dependencies"
-              exit 1
-            fi
-          fi
-          
-          # Check container scan results
-          if [ -f trivy-report.json ]; then
-            CONTAINER_HIGH=$(jq '[.Results[]?.Vulnerabilities[]? | select(.Severity == "HIGH")] | length' trivy-report.json)
-            CONTAINER_CRITICAL=$(jq '[.Results[]?.Vulnerabilities[]? | select(.Severity == "CRITICAL")] | length' trivy-report.json)
-            echo "  - Container High vulnerabilities: $CONTAINER_HIGH"
-            echo "  - Container Critical vulnerabilities: $CONTAINER_CRITICAL"
-            
-            if [ "$CONTAINER_CRITICAL" -gt 0 ] || [ "$CONTAINER_HIGH" -gt 0 ]; then
-              echo "❌ FAILED: Found vulnerabilities with CVSS >= 7.0 in container image"
-              exit 1
-            fi
-          fi
-          
-          echo "✅ Check 2: No high/critical vulnerabilities found"
-          
-          # Check 3: Signature verification
-          echo "📝 Check 3: Verifying image signature..."
-          if [ "${{ needs.sign-image.outputs.signature-verified }}" != "true" ]; then
-            echo "❌ FAILED: Image signature verification failed"
-            exit 1
-          fi
-          echo "✅ Check 3: Image signature verified"
-          
-          echo ""
-          echo "🎉 All quality gate checks passed!"
+    uses: ./.github/workflows/quality-gate.yml
+    with:
+      signature-verified: ${{ needs.sign-image.outputs.signature-verified }}
 
   # Step 9: Deploy to Kubernetes
   deploy:
-    name: Deploy to Kubernetes
-    runs-on: ubuntu-latest
     needs: [quality-gate, sign-image, container-build]
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    uses: ./.github/workflows/deploy.yml
     permissions:
       contents: read
       issues: write
       pull-requests: write
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v5
-
-      - name: Create Kubernetes manifests
-        env:
-          IMAGE_DIGEST: ${{ needs.container-build.outputs.image-digest }}
-        run: |
-          mkdir -p k8s-deploy
-          
-          # Use the manifest from the repo but update the image
-          if [ -f k8s/deployment.yaml ]; then
-            sed "s|IMAGE_PLACEHOLDER|${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${IMAGE_DIGEST}|g" k8s/deployment.yaml > k8s-deploy/deployment.yaml
-          fi
-          
-          echo "Kubernetes manifests prepared for deployment"
-          ls -la k8s-deploy/ || true
-
-      - name: Deploy to Kubernetes (Dry Run)
-        run: |
-          echo "🚀 Deployment Configuration Ready"
-          echo "Image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ needs.container-build.outputs.image-digest }}"
-          echo ""
-          echo "To complete deployment, configure kubectl with your cluster credentials"
-          echo "and apply the manifests in k8s/ directory:"
-          echo "  kubectl apply -f k8s/"
-          echo ""
-          echo "This workflow performs a dry-run. Configure KUBECONFIG secret for actual deployment."
-
-      - name: Comment deployment info on PR
-        if: github.event_name == 'pull_request'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: `🚀 **Deployment Ready**\n\nImage: \`${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ needs.container-build.outputs.image-digest }}\`\n\n✅ All security checks passed\n✅ Image signed and verified`
-            })
+    with:
+      image-digest: ${{ needs.container-build.outputs.image-digest }}
