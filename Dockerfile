@@ -13,7 +13,9 @@ COPY . .
 RUN npm install && npm run build
 
 # Production stage
-FROM nginx:1.27-alpine
+FROM nginx:alpine
+# Fix Pcre2 vulnerability in alpine OS
+RUN apk upgrade --no-cache pcre2
 
 # Copy built assets from builder
 COPY --from=builder /app/dist /usr/share/nginx/html
