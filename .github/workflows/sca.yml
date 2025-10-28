@@ -51,7 +51,6 @@ jobs:
           scan-ref: '.'
           format: 'table'
           severity: 'CRITICAL,HIGH'
-          dependency-tree: true
 
       - name: Check for high severity vulnerabilities via npm audit
         id: check-vulns
