@@ -96,7 +96,7 @@ jobs:
           echo "high_vulns=$HIGH_VULNS" >> $GITHUB_OUTPUT
           echo "critical_vulns=$CRITICAL_VULNS" >> $GITHUB_OUTPUT
           
-          echo "Found $CRITICAL_VULNS critical and $HIGH_VULNS high severity vulnerabilities in container" >> $GITHUB_JOB_SUMMARY
+          echo "Found $CRITICAL_VULNS critical and $HIGH_VULNS high severity vulnerabilities in container" >> $GITHUB_STEP_SUMMARY
 
       - name: Upload container scan results
         uses: actions/upload-artifact@v5
