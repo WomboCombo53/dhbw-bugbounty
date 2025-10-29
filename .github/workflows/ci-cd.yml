@@ -2,9 +2,9 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ main ]
   pull_request:
-    branches: [ main, master ]
+    branches: [ main ]
   workflow_dispatch:
 
 jobs:
@@ -71,7 +71,7 @@ jobs:
   # Step 9: Deploy to Kubernetes
   deploy:
     needs: [quality-gate, sign-image, container-build]
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    if: github.ref == 'refs/heads/main'
     uses: ./.github/workflows/deploy.yml
     permissions:
       contents: read
