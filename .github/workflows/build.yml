@@ -4,25 +4,11 @@ on:
   workflow_call:
 
 jobs:
-  build:
-    name: Build ${{ matrix.component }}
+  build-frontend:
+    name: Build Frontend
     runs-on: ubuntu-latest
     permissions:
       contents: read
-    strategy:
-      matrix:
-        component: [frontend, backend]
-        include:
-          - component: frontend
-            path: ./frontend
-            node-version: '22'
-            build-command: npm run build
-            artifact-path: frontend/dist/
-          - component: backend
-            path: ./backend
-            node-version: '22'
-            build-command: npm ci --production
-            artifact-path: backend/
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
@@ -30,19 +16,48 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: ${{ matrix.node-version }}
+          node-version: '20'
 
       - name: Install dependencies
-        working-directory: ${{ matrix.path }}
+        working-directory: ./frontend
         run: npm ci
 
       - name: Build application
-        working-directory: ${{ matrix.path }}
-        run: ${{ matrix.build-command }}
+        working-directory: ./frontend
+        run: npm run build
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v5
         with:
-          name: build-artifacts-${{ matrix.component }}
-          path: ${{ matrix.artifact-path }}
+          name: build-artifacts-frontend
+          path: frontend/dist/
+          retention-days: 7
+
+  build-backend:
+    name: Build Backend
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        working-directory: ./backend
+        run: npm ci
+
+      - name: Build application
+        working-directory: ./backend
+        run: npm ci --production
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v5
+        with:
+          name: build-artifacts-backend
+          path: backend/
           retention-days: 7

@@ -4,22 +4,12 @@ on:
   workflow_call:
 
 jobs:
-  sca:
-    name: SCA - ${{ matrix.component }}
+  sca-frontend:
+    name: SCA - Frontend
     runs-on: ubuntu-latest
     permissions:
       contents: read
       security-events: write
-    strategy:
-      matrix:
-        component: [frontend, backend]
-        include:
-          - component: frontend
-            path: ./frontend
-            node-version: '22'
-          - component: backend
-            path: ./backend
-            node-version: '22'
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
@@ -27,15 +17,15 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: ${{ matrix.node-version }}
+          node-version: '20'
 
       - name: Install dependencies
-        working-directory: ${{ matrix.path }}
+        working-directory: ./frontend
         run: npm ci
 
       - name: Run npm audit
         id: npm-audit
-        working-directory: ${{ matrix.path }}
+        working-directory: ./frontend
         run: |
           npm audit --audit-level=moderate --json > audit-results.json || true
           cat audit-results.json
@@ -44,29 +34,29 @@ jobs:
         uses: aquasecurity/trivy-action@0.33.1
         with:
           scan-type: 'fs'
-          scan-ref: ${{ matrix.path }}
+          scan-ref: './frontend'
           format: 'sarif'
-          output: 'trivy-results-${{ matrix.component }}.sarif'
+          output: 'trivy-results-frontend.sarif'
           severity: 'CRITICAL,HIGH'
 
       - name: Upload Trivy results to GitHub Security
         uses: github/codeql-action/upload-sarif@v3
         if: always()
         with:
-          sarif_file: 'trivy-results-${{ matrix.component }}.sarif'
+          sarif_file: 'trivy-results-frontend.sarif'
 
       - name: Show dependency tree for vulnerabilities
         if: always()
         uses: aquasecurity/trivy-action@0.33.1
         with:
           scan-type: 'fs'
-          scan-ref: ${{ matrix.path }}
+          scan-ref: './frontend'
           format: 'table'
           severity: 'CRITICAL,HIGH'
 
       - name: Check for high severity vulnerabilities via npm audit
         id: check-vulns
-        working-directory: ${{ matrix.path }}
+        working-directory: ./frontend
         run: |
           npm audit --audit-level=high --json > audit-check.json || true
           HIGH_VULNS=$(jq '.metadata.vulnerabilities.high // 0' audit-check.json)
@@ -74,7 +64,7 @@ jobs:
           echo "high_vulns=$HIGH_VULNS" >> $GITHUB_OUTPUT
           echo "critical_vulns=$CRITICAL_VULNS" >> $GITHUB_OUTPUT
           
-          echo "## ${{ matrix.component }} Dependency Vulnerability Scan 
+          echo "## Frontend Dependency Vulnerability Scan 
           🔓 Found $CRITICAL_VULNS critical and $HIGH_VULNS high severity vulnerabilities" >> $GITHUB_STEP_SUMMARY
 
 
@@ -82,7 +72,80 @@ jobs:
         uses: actions/upload-artifact@v5
         if: always()
         with:
-          name: audit-results-${{ matrix.component }}
+          name: audit-results-frontend
           path: |
-            ${{ matrix.path }}/audit-results.json
-            ${{ matrix.path }}/audit-check.json
+            frontend/audit-results.json
+            frontend/audit-check.json
+
+  sca-backend:
+    name: SCA - Backend
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        working-directory: ./backend
+        run: npm ci
+
+      - name: Run npm audit
+        id: npm-audit
+        working-directory: ./backend
+        run: |
+          npm audit --audit-level=moderate --json > audit-results.json || true
+          cat audit-results.json
+
+      - name: Scan dependencies with Trivy
+        uses: aquasecurity/trivy-action@0.33.1
+        with:
+          scan-type: 'fs'
+          scan-ref: './backend'
+          format: 'sarif'
+          output: 'trivy-results-backend.sarif'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Upload Trivy results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-results-backend.sarif'
+
+      - name: Show dependency tree for vulnerabilities
+        if: always()
+        uses: aquasecurity/trivy-action@0.33.1
+        with:
+          scan-type: 'fs'
+          scan-ref: './backend'
+          format: 'table'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Check for high severity vulnerabilities via npm audit
+        id: check-vulns
+        working-directory: ./backend
+        run: |
+          npm audit --audit-level=high --json > audit-check.json || true
+          HIGH_VULNS=$(jq '.metadata.vulnerabilities.high // 0' audit-check.json)
+          CRITICAL_VULNS=$(jq '.metadata.vulnerabilities.critical // 0' audit-check.json)
+          echo "high_vulns=$HIGH_VULNS" >> $GITHUB_OUTPUT
+          echo "critical_vulns=$CRITICAL_VULNS" >> $GITHUB_OUTPUT
+          
+          echo "## Backend Dependency Vulnerability Scan 
+          🔓 Found $CRITICAL_VULNS critical and $HIGH_VULNS high severity vulnerabilities" >> $GITHUB_STEP_SUMMARY
+
+
+      - name: Upload audit results
+        uses: actions/upload-artifact@v5
+        if: always()
+        with:
+          name: audit-results-backend
+          path: |
+            backend/audit-results.json
+            backend/audit-check.json

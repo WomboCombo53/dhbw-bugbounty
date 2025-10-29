@@ -4,21 +4,11 @@ on:
   workflow_call:
 
 jobs:
-  sbom:
-    name: Generate SBOM - ${{ matrix.component }}
+  sbom-frontend:
+    name: Generate SBOM - Frontend
     runs-on: ubuntu-latest
     permissions:
       contents: read
-    strategy:
-      matrix:
-        component: [frontend, backend]
-        include:
-          - component: frontend
-            path: ./frontend
-            node-version: '22'
-          - component: backend
-            path: ./backend
-            node-version: '22'
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
@@ -26,23 +16,56 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: ${{ matrix.node-version }}
+          node-version: '22'
 
       - name: Install dependencies
-        working-directory: ${{ matrix.path }}
+        working-directory: ./frontend
         run: npm ci
 
       - name: Generate SBOM with Syft
         uses: anchore/sbom-action@v0
         with:
-          path: ${{ matrix.path }}
+          path: ./frontend
           format: cyclonedx-json
-          output-file: sbom-${{ matrix.component }}.json
+          output-file: sbom-frontend.json
           upload-artifact: true
 
       - name: Upload SBOM
         uses: actions/upload-artifact@v5
         with:
-          name: sbom-${{ matrix.component }}
-          path: sbom-${{ matrix.component }}.json
+          name: sbom-frontend
+          path: sbom-frontend.json
+          retention-days: 30
+
+  sbom-backend:
+    name: Generate SBOM - Backend
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        working-directory: ./backend
+        run: npm ci
+
+      - name: Generate SBOM with Syft
+        uses: anchore/sbom-action@v0
+        with:
+          path: ./backend
+          format: cyclonedx-json
+          output-file: sbom-backend.json
+          upload-artifact: true
+
+      - name: Upload SBOM
+        uses: actions/upload-artifact@v5
+        with:
+          name: sbom-backend
+          path: sbom-backend.json
           retention-days: 30
