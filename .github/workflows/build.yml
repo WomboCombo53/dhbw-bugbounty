@@ -4,11 +4,25 @@ on:
   workflow_call:
 
 jobs:
-  build-frontend:
-    name: Build Frontend
+  build:
+    name: Build ${{ matrix.component }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    strategy:
+      matrix:
+        component: [frontend, backend]
+        include:
+          - component: frontend
+            path: ./frontend
+            node-version: '22'
+            build-command: npm run build
+            artifact-path: frontend/dist/
+          - component: backend
+            path: ./backend
+            node-version: '22'
+            build-command: npm ci --production
+            artifact-path: backend/
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
@@ -16,48 +30,19 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: '20'
+          node-version: ${{ matrix.node-version }}
 
       - name: Install dependencies
-        working-directory: ./frontend
+        working-directory: ${{ matrix.path }}
         run: npm ci
 
       - name: Build application
-        working-directory: ./frontend
-        run: npm run build
+        working-directory: ${{ matrix.path }}
+        run: ${{ matrix.build-command }}
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v5
         with:
-          name: build-artifacts-frontend
-          path: frontend/dist/
-          retention-days: 7
-
-  build-backend:
-    name: Build Backend
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v5
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: '20'
-
-      - name: Install dependencies
-        working-directory: ./backend
-        run: npm ci
-
-      - name: Build application
-        working-directory: ./backend
-        run: npm ci --production
-
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v5
-        with:
-          name: build-artifacts-backend
-          path: backend/
+          name: build-artifacts-${{ matrix.component }}
+          path: ${{ matrix.artifact-path }}
           retention-days: 7
