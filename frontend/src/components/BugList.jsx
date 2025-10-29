@@ -16,31 +16,43 @@ function BugList({ bugs }) {
 
   return (
     <div className="bug-list">
-      {bugs.map(bug => (
-        <div key={bug.id} className="bug-card">
+      {bugs.map((bug) => (
+        <div key={bug._id || bug.id} className="bug-card">
           <div className="bug-header">
             <h3>{bug.title}</h3>
             <span className={getSeverityClass(bug.severity)}>
               {bug.severity.toUpperCase()}
             </span>
           </div>
-          
+
           <div className="bug-details">
-            <p><strong>Company:</strong> {bug.companyName}</p>
-            <p><strong>Description:</strong> {bug.description}</p>
-            <p><strong>Reporter:</strong> {bug.reporterEmail}</p>
+            <p>
+              <strong>Company:</strong> {bug.companyName}
+            </p>
+            <p>
+              <strong>Description:</strong> {bug.description}
+            </p>
+            <p>
+              <strong>Reporter:</strong> {bug.reporterEmail}
+            </p>
             {bug.bountyAmount && (
-              <p><strong>Bounty:</strong> ${bug.bountyAmount}</p>
+              <p>
+                <strong>Bounty:</strong> ${bug.bountyAmount}
+              </p>
             )}
-            <p><strong>Status:</strong> <span className="status-badge">{bug.status}</span></p>
+            <p>
+              <strong>Status:</strong>{" "}
+              <span className="status-badge">{bug.status}</span>
+            </p>
             <p className="timestamp">
-              <strong>Submitted:</strong> {new Date(bug.submittedAt).toLocaleString()}
+              <strong>Submitted:</strong>{" "}
+              {new Date(bug.submittedAt).toLocaleString()}
             </p>
           </div>
         </div>
       ))}
     </div>
-  )
+  );
 }
 
 export default BugList
