@@ -3,28 +3,44 @@ name: Sign Container Image
 on:
   workflow_call:
     inputs:
-      image-digest:
-        description: "The digest of the container image to sign"
+      frontend-image-digest:
+        description: "The digest of the frontend container image to sign"
+        required: true
+        type: string
+      backend-image-digest:
+        description: "The digest of the backend container image to sign"
         required: true
         type: string
     outputs:
-      signature-verified:
-        description: "Whether the signature was verified successfully"
-        value: ${{ jobs.sign-image.outputs.signature-verified }}
+      frontend-signature-verified:
+        description: "Whether the frontend signature was verified successfully"
+        value: ${{ jobs.sign-image.outputs.frontend-signature-verified }}
+      backend-signature-verified:
+        description: "Whether the backend signature was verified successfully"
+        value: ${{ jobs.sign-image.outputs.backend-signature-verified }}
 
 env:
   REGISTRY: ghcr.io
 
 jobs:
   sign-image:
-    name: Sign Container Image
+    name: Sign ${{ matrix.component }} Container
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
       id-token: write
+    strategy:
+      matrix:
+        component: [frontend, backend]
+        include:
+          - component: frontend
+            digest-input: ${{ inputs.frontend-image-digest }}
+          - component: backend
+            digest-input: ${{ inputs.backend-image-digest }}
     outputs:
-      signature-verified: ${{ steps.verify.outputs.verified }}
+      frontend-signature-verified: ${{ steps.verify-frontend.outputs.verified }}
+      backend-signature-verified: ${{ steps.verify-backend.outputs.verified }}
     steps:
       - name: Install Cosign
         uses: sigstore/cosign-installer@v3
@@ -39,24 +55,24 @@ jobs:
       - name: Sign container image
         run: |
           REPO_LOWER=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
-          IMAGE_REF="${{ env.REGISTRY }}/${REPO_LOWER}@${{ inputs.image-digest }}"
+          IMAGE_REF="${{ env.REGISTRY }}/${REPO_LOWER}-${{ matrix.component }}@${{ matrix.digest-input }}"
           echo "Signing image: ${IMAGE_REF}"
           cosign sign --yes "${IMAGE_REF}"
 
       - name: Verify signature
-        id: verify
+        id: verify-${{ matrix.component }}
         run: |
           REPO_LOWER=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
-          IMAGE_REF="${{ env.REGISTRY }}/${REPO_LOWER}@${{ inputs.image-digest }}"
+          IMAGE_REF="${{ env.REGISTRY }}/${REPO_LOWER}-${{ matrix.component }}@${{ matrix.digest-input }}"
           echo "Verifying signature for: ${IMAGE_REF}"
           if cosign verify \
             --certificate-identity-regexp="https://github.com/${{ github.repository }}/*" \
             --certificate-oidc-issuer=https://token.actions.githubusercontent.com \
             "${IMAGE_REF}"; then
             echo "verified=true" >> $GITHUB_OUTPUT
-            echo "✅ Signature verified successfully"
+            echo "✅ ${{ matrix.component }} signature verified successfully"
           else
             echo "verified=false" >> $GITHUB_OUTPUT
-            echo "❌ Signature verification failed"
+            echo "❌ ${{ matrix.component }} signature verification failed"
             exit 1
           fi

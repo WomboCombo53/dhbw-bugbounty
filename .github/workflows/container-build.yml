@@ -3,12 +3,18 @@ name: Build & Scan Container
 on:
   workflow_call:
     outputs:
-      image-digest:
-        description: "The digest of the built container image"
-        value: ${{ jobs.container-build.outputs.image-digest }}
-      image-tag:
-        description: "The tag of the built container image"
-        value: ${{ jobs.container-build.outputs.image-tag }}
+      frontend-image-digest:
+        description: "The digest of the built frontend container image"
+        value: ${{ jobs.container-build.outputs.frontend-image-digest }}
+      backend-image-digest:
+        description: "The digest of the built backend container image"
+        value: ${{ jobs.container-build.outputs.backend-image-digest }}
+      frontend-image-tag:
+        description: "The tag of the built frontend container image"
+        value: ${{ jobs.container-build.outputs.frontend-image-tag }}
+      backend-image-tag:
+        description: "The tag of the built backend container image"
+        value: ${{ jobs.container-build.outputs.backend-image-tag }}
 
 env:
   REGISTRY: ghcr.io
@@ -16,15 +22,25 @@ env:
 
 jobs:
   container-build:
-    name: Build & Scan Container
+    name: Build & Scan ${{ matrix.component }} Container
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
       security-events: write
+    strategy:
+      matrix:
+        component: [frontend, backend]
+        include:
+          - component: frontend
+            context: ./frontend
+          - component: backend
+            context: ./backend
     outputs:
-      image-digest: ${{ steps.build-push.outputs.digest }}
-      image-tag: ${{ steps.meta.outputs.tags }}
+      frontend-image-digest: ${{ steps.build-push-frontend.outputs.digest }}
+      backend-image-digest: ${{ steps.build-push-backend.outputs.digest }}
+      frontend-image-tag: ${{ steps.meta-frontend.outputs.tags }}
+      backend-image-tag: ${{ steps.meta-backend.outputs.tags }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
@@ -40,10 +56,10 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Extract metadata
-        id: meta
+        id: meta-${{ matrix.component }}
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-${{ matrix.component }}
           tags: |
             type=ref,event=branch
             type=ref,event=pr
@@ -52,22 +68,22 @@ jobs:
             type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Build and push Docker image
-        id: build-push
+        id: build-push-${{ matrix.component }}
         uses: docker/build-push-action@v6
         with:
-          context: ./frontend
+          context: ${{ matrix.context }}
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          tags: ${{ steps[format('meta-{0}', matrix.component)].outputs.tags }}
+          labels: ${{ steps[format('meta-{0}', matrix.component)].outputs.labels }}
+          cache-from: type=gha,scope=${{ matrix.component }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.component }}
 
       - name: Scan container image with Trivy
         uses: aquasecurity/trivy-action@0.33.1
         with:
-          image-ref: ${{ fromJSON(steps.meta.outputs.json).tags[0] }}
+          image-ref: ${{ fromJSON(steps[format('meta-{0}', matrix.component)].outputs.json).tags[0] }}
           format: 'sarif'
-          output: 'trivy-image-results.sarif'
+          output: 'trivy-image-results-${{ matrix.component }}.sarif'
           severity: 'CRITICAL,HIGH'
         env:
           TRIVY_USERNAME: ${{ github.actor }}
@@ -77,7 +93,7 @@ jobs:
         uses: github/codeql-action/upload-sarif@v3
         if: always()
         with:
-          sarif_file: 'trivy-image-results.sarif'
+          sarif_file: 'trivy-image-results-${{ matrix.component }}.sarif'
 
       - name: Check container vulnerabilities
         id: check-container-vulns
@@ -88,21 +104,21 @@ jobs:
             aquasec/trivy image \
             --format json \
             --severity HIGH,CRITICAL \
-            ${{ fromJSON(steps.meta.outputs.json).tags[0] }} > trivy-report.json
+            ${{ fromJSON(steps[format('meta-{0}', matrix.component)].outputs.json).tags[0] }} > trivy-report-${{ matrix.component }}.json
           
-          HIGH_VULNS=$(jq '[.Results[]?.Vulnerabilities[]? | select(.Severity == "HIGH")] | length' trivy-report.json)
-          CRITICAL_VULNS=$(jq '[.Results[]?.Vulnerabilities[]? | select(.Severity == "CRITICAL")] | length' trivy-report.json)
+          HIGH_VULNS=$(jq '[.Results[]?.Vulnerabilities[]? | select(.Severity == "HIGH")] | length' trivy-report-${{ matrix.component }}.json)
+          CRITICAL_VULNS=$(jq '[.Results[]?.Vulnerabilities[]? | select(.Severity == "CRITICAL")] | length' trivy-report-${{ matrix.component }}.json)
           
           echo "high_vulns=$HIGH_VULNS" >> $GITHUB_OUTPUT
           echo "critical_vulns=$CRITICAL_VULNS" >> $GITHUB_OUTPUT
           
           echo "
-          ## Container vulnerability scan
+          ## ${{ matrix.component }} Container vulnerability scan
           🔓 Found $CRITICAL_VULNS critical and $HIGH_VULNS high severity vulnerabilities in container" >> $GITHUB_STEP_SUMMARY
 
       - name: Upload container scan results
         uses: actions/upload-artifact@v5
         if: always()
         with:
-          name: container-scan-results
-          path: trivy-report.json
+          name: container-scan-results-${{ matrix.component }}
+          path: trivy-report-${{ matrix.component }}.json
