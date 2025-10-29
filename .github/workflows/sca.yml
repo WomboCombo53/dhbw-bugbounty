@@ -1,0 +1,75 @@
+name: SCA - Dependency Scanning
+
+on:
+  workflow_call:
+
+jobs:
+  sca:
+    name: SCA - Dependency Scanning
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run npm audit
+        id: npm-audit
+        run: |
+          npm audit --audit-level=moderate --json > audit-results.json || true
+          cat audit-results.json
+
+      - name: Scan dependencies with Trivy
+        uses: aquasecurity/trivy-action@0.33.1
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Upload Trivy results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+      - name: Show dependency tree for vulnerabilities
+        if: always()
+        uses: aquasecurity/trivy-action@0.33.1
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'table'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Check for high severity vulnerabilities via npm audit
+        id: check-vulns
+        run: |
+          npm audit --audit-level=high --json > audit-check.json || true
+          HIGH_VULNS=$(jq '.metadata.vulnerabilities.high // 0' audit-check.json)
+          CRITICAL_VULNS=$(jq '.metadata.vulnerabilities.critical // 0' audit-check.json)
+          echo "high_vulns=$HIGH_VULNS" >> $GITHUB_OUTPUT
+          echo "critical_vulns=$CRITICAL_VULNS" >> $GITHUB_OUTPUT
+          
+          echo "## Dependency Vulnerability Scan 
+          🔓 Found $CRITICAL_VULNS critical and $HIGH_VULNS high severity vulnerabilities" >> $GITHUB_STEP_SUMMARY
+
+
+      - name: Upload audit results
+        uses: actions/upload-artifact@v5
+        if: always()
+        with:
+          name: audit-results
+          path: |
+            audit-results.json
+            audit-check.json
