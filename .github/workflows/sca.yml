@@ -20,10 +20,12 @@ jobs:
           node-version: '20'
 
       - name: Install dependencies
+        working-directory: ./frontend
         run: npm ci
 
       - name: Run npm audit
         id: npm-audit
+        working-directory: ./frontend
         run: |
           npm audit --audit-level=moderate --json > audit-results.json || true
           cat audit-results.json
@@ -32,7 +34,7 @@ jobs:
         uses: aquasecurity/trivy-action@0.33.1
         with:
           scan-type: 'fs'
-          scan-ref: '.'
+          scan-ref: './frontend'
           format: 'sarif'
           output: 'trivy-results.sarif'
           severity: 'CRITICAL,HIGH'
@@ -48,12 +50,13 @@ jobs:
         uses: aquasecurity/trivy-action@0.33.1
         with:
           scan-type: 'fs'
-          scan-ref: '.'
+          scan-ref: './frontend'
           format: 'table'
           severity: 'CRITICAL,HIGH'
 
       - name: Check for high severity vulnerabilities via npm audit
         id: check-vulns
+        working-directory: ./frontend
         run: |
           npm audit --audit-level=high --json > audit-check.json || true
           HIGH_VULNS=$(jq '.metadata.vulnerabilities.high // 0' audit-check.json)
@@ -71,5 +74,5 @@ jobs:
         with:
           name: audit-results
           path: |
-            audit-results.json
-            audit-check.json
+            frontend/audit-results.json
+            frontend/audit-check.json

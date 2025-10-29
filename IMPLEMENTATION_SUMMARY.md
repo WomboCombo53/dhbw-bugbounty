@@ -112,41 +112,47 @@ The quality gate enforces all three required conditions:
 ├── .github/
 │   └── workflows/
 │       └── ci-cd.yml              # Complete CI/CD pipeline
+├── frontend/
+│   ├── src/
+│   │   ├── components/
+│   │   │   ├── BugSubmissionForm.jsx # Bug submission component
+│   │   │   ├── BugSubmissionForm.css
+│   │   │   ├── BugList.jsx            # Bug list component
+│   │   │   └── BugList.css
+│   │   ├── App.jsx                    # Main app component
+│   │   ├── App.css
+│   │   ├── main.jsx                   # Entry point
+│   │   └── index.css
+│   ├── Dockerfile                     # Multi-stage container build
+│   ├── nginx.conf                     # Nginx configuration with security headers
+│   ├── vite.config.js                # Vite build configuration
+│   ├── package.json                   # Dependencies and scripts
+│   ├── index.html
+│   └── .gitignore                     # Git ignore patterns
 ├── k8s/
 │   └── deployment.yaml            # Kubernetes manifests
-├── src/
-│   ├── components/
-│   │   ├── BugSubmissionForm.jsx # Bug submission component
-│   │   ├── BugSubmissionForm.css
-│   │   ├── BugList.jsx            # Bug list component
-│   │   └── BugList.css
-│   ├── App.jsx                    # Main app component
-│   ├── App.css
-│   ├── main.jsx                   # Entry point
-│   └── index.css
-├── Dockerfile                     # Multi-stage container build
-├── nginx.conf                     # Nginx configuration with security headers
-├── vite.config.js                # Vite build configuration
-├── package.json                   # Dependencies and scripts
-├── .gitignore                     # Git ignore patterns
+├── backend/                       # Backend directory (empty for now)
 └── README.md                      # Comprehensive documentation
+```
 
 ### Deployment Instructions
 
 1. **Local Development**:
    ```bash
+   cd frontend
    npm install
    npm run dev
    ```
 
 2. **Build Application**:
    ```bash
+   cd frontend
    npm run build
    ```
 
 3. **Build Container**:
    ```bash
-   docker build -t bugbounty-tracker .
+   docker build -t bugbounty-tracker ./frontend
    ```
 
 4. **Deploy to Kubernetes**:
