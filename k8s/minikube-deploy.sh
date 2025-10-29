@@ -20,7 +20,7 @@ eval $(minikube docker-env)
 # Build the Docker image inside Minikube
 echo ""
 echo "🐳 Building Docker image inside Minikube..."
-cd ..
+cd ../frontend
 docker build -t dhbw-bugbounty:local .
 
 if [ $? -ne 0 ]; then

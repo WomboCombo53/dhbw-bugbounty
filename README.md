@@ -83,6 +83,7 @@ The project implements a comprehensive security-focused CI/CD pipeline with the 
 
 1. **Install dependencies:**
    ```bash
+   cd frontend
    npm install
    ```
 
@@ -101,7 +102,7 @@ The project implements a comprehensive security-focused CI/CD pipeline with the 
 
 1. **Build container image:**
    ```bash
-   docker build -t bugbounty-tracker .
+   docker build -t bugbounty-tracker ./frontend
    ```
 
 2. **Run container:**
@@ -153,22 +154,25 @@ ghcr.io/<username>/<repository>:tag
 ├── .github/
 │   └── workflows/
 │       └── ci-cd.yml          # CI/CD pipeline configuration
+├── frontend/
+│   ├── src/
+│   │   ├── components/
+│   │   │   ├── BugSubmissionForm.jsx
+│   │   │   ├── BugSubmissionForm.css
+│   │   │   ├── BugList.jsx
+│   │   │   └── BugList.css
+│   │   ├── App.jsx
+│   │   ├── App.css
+│   │   ├── main.jsx
+│   │   └── index.css
+│   ├── Dockerfile             # Multi-stage container build
+│   ├── nginx.conf             # Nginx configuration
+│   ├── vite.config.js         # Vite build configuration
+│   ├── package.json           # Dependencies and scripts
+│   └── index.html
 ├── k8s/
 │   └── deployment.yaml        # Kubernetes manifests
-├── src/
-│   ├── components/
-│   │   ├── BugSubmissionForm.jsx
-│   │   ├── BugSubmissionForm.css
-│   │   ├── BugList.jsx
-│   │   └── BugList.css
-│   ├── App.jsx
-│   ├── App.css
-│   ├── main.jsx
-│   └── index.css
-├── Dockerfile                  # Multi-stage container build
-├── nginx.conf                  # Nginx configuration
-├── vite.config.js             # Vite build configuration
-├── package.json               # Dependencies and scripts
+├── backend/                   # Backend directory (empty for now)
 └── README.md
 ```
 

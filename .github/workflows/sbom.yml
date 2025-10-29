@@ -19,11 +19,13 @@ jobs:
           node-version: '22'
 
       - name: Install dependencies
+        working-directory: ./frontend
         run: npm ci
 
       - name: Generate SBOM with Syft
         uses: anchore/sbom-action@v0
         with:
+          path: ./frontend
           format: cyclonedx-json
           output-file: sbom.json
           upload-artifact: true
