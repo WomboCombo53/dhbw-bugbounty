@@ -18,6 +18,13 @@ yarn-error.log*
 .env.development.local
 .env.test.local
 .env.production.local
+backend/.env
+frontend/.env
+
+# But keep example files
+!.env.example
+!backend/.env.example
+!frontend/.env.example
 
 # IDE
 .vscode/
@@ -33,3 +40,14 @@ Thumbs.db
 # Temporary files
 tmp/
 temp/
+
+# Coverage reports
+coverage/
+.nyc_output/
+
+# Docker volumes (if running locally)
+mongo-data/
+
+# Package lock files (optional - consider keeping them)
+# package-lock.json
+# yarn.lock
