@@ -16,11 +16,11 @@ spec:
     spec:
       containers:
       - name: bugbounty-tracker
-        image: IMAGE_PLACEHOLDER
+        image: dhbw-bugbounty:local
+        imagePullPolicy: Never
         ports:
         - containerPort: 80
           name: http
-          protocol: TCP
         resources:
           requests:
             memory: "128Mi"
@@ -54,6 +54,20 @@ spec:
               - ALL
             add:
               - NET_BIND_SERVICE
+        volumeMounts:
+        - name: nginx-cache
+          mountPath: /var/cache/nginx
+        - name: nginx-run
+          mountPath: /run
+        - name: nginx-tmp
+          mountPath: /tmp
+      volumes:
+      - name: nginx-cache
+        emptyDir: {}
+      - name: nginx-run
+        emptyDir: {}
+      - name: nginx-tmp
+        emptyDir: {}
 ---
 apiVersion: v1
 kind: Service
@@ -62,7 +76,7 @@ metadata:
   labels:
     app: bugbounty-tracker
 spec:
-  type: LoadBalancer
+  type: NodePort
   selector:
     app: bugbounty-tracker
   ports:
@@ -77,15 +91,14 @@ metadata:
   name: bugbounty-tracker-ingress
   annotations:
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
-    cert-manager.io/cluster-issuer: "letsencrypt-prod"
 spec:
   ingressClassName: nginx
   tls:
   - hosts:
-    - bugbounty.example.com
+    - bugbounty.local
     secretName: bugbounty-tls
   rules:
-  - host: bugbounty.example.com
+  - host: bugbounty.local
     http:
       paths:
       - path: /
