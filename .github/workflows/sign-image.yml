@@ -14,33 +14,24 @@ on:
     outputs:
       frontend-signature-verified:
         description: "Whether the frontend signature was verified successfully"
-        value: ${{ jobs.sign-image.outputs.frontend-signature-verified }}
+        value: ${{ jobs.sign-frontend.outputs.signature-verified }}
       backend-signature-verified:
         description: "Whether the backend signature was verified successfully"
-        value: ${{ jobs.sign-image.outputs.backend-signature-verified }}
+        value: ${{ jobs.sign-backend.outputs.signature-verified }}
 
 env:
   REGISTRY: ghcr.io
 
 jobs:
-  sign-image:
-    name: Sign ${{ matrix.component }} Container
+  sign-frontend:
+    name: Sign Frontend Container
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
       id-token: write
-    strategy:
-      matrix:
-        component: [frontend, backend]
-        include:
-          - component: frontend
-            digest-input: ${{ inputs.frontend-image-digest }}
-          - component: backend
-            digest-input: ${{ inputs.backend-image-digest }}
     outputs:
-      frontend-signature-verified: ${{ steps.verify-frontend.outputs.verified }}
-      backend-signature-verified: ${{ steps.verify-backend.outputs.verified }}
+      signature-verified: ${{ steps.verify.outputs.verified }}
     steps:
       - name: Install Cosign
         uses: sigstore/cosign-installer@v3
@@ -55,24 +46,69 @@ jobs:
       - name: Sign container image
         run: |
           REPO_LOWER=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
-          IMAGE_REF="${{ env.REGISTRY }}/${REPO_LOWER}-${{ matrix.component }}@${{ matrix.digest-input }}"
+          IMAGE_REF="${{ env.REGISTRY }}/${REPO_LOWER}-frontend@${{ inputs.frontend-image-digest }}"
           echo "Signing image: ${IMAGE_REF}"
           cosign sign --yes "${IMAGE_REF}"
 
       - name: Verify signature
-        id: verify-${{ matrix.component }}
+        id: verify
         run: |
           REPO_LOWER=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
-          IMAGE_REF="${{ env.REGISTRY }}/${REPO_LOWER}-${{ matrix.component }}@${{ matrix.digest-input }}"
+          IMAGE_REF="${{ env.REGISTRY }}/${REPO_LOWER}-frontend@${{ inputs.frontend-image-digest }}"
           echo "Verifying signature for: ${IMAGE_REF}"
           if cosign verify \
             --certificate-identity-regexp="https://github.com/${{ github.repository }}/*" \
             --certificate-oidc-issuer=https://token.actions.githubusercontent.com \
             "${IMAGE_REF}"; then
             echo "verified=true" >> $GITHUB_OUTPUT
-            echo "✅ ${{ matrix.component }} signature verified successfully"
+            echo "✅ Frontend signature verified successfully"
           else
             echo "verified=false" >> $GITHUB_OUTPUT
-            echo "❌ ${{ matrix.component }} signature verification failed"
+            echo "❌ Frontend signature verification failed"
+            exit 1
+          fi
+
+  sign-backend:
+    name: Sign Backend Container
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+    outputs:
+      signature-verified: ${{ steps.verify.outputs.verified }}
+    steps:
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Sign container image
+        run: |
+          REPO_LOWER=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          IMAGE_REF="${{ env.REGISTRY }}/${REPO_LOWER}-backend@${{ inputs.backend-image-digest }}"
+          echo "Signing image: ${IMAGE_REF}"
+          cosign sign --yes "${IMAGE_REF}"
+
+      - name: Verify signature
+        id: verify
+        run: |
+          REPO_LOWER=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          IMAGE_REF="${{ env.REGISTRY }}/${REPO_LOWER}-backend@${{ inputs.backend-image-digest }}"
+          echo "Verifying signature for: ${IMAGE_REF}"
+          if cosign verify \
+            --certificate-identity-regexp="https://github.com/${{ github.repository }}/*" \
+            --certificate-oidc-issuer=https://token.actions.githubusercontent.com \
+            "${IMAGE_REF}"; then
+            echo "verified=true" >> $GITHUB_OUTPUT
+            echo "✅ Backend signature verified successfully"
+          else
+            echo "verified=false" >> $GITHUB_OUTPUT
+            echo "❌ Backend signature verification failed"
             exit 1
           fi
