@@ -84,7 +84,7 @@ The project implements a comprehensive security-focused CI/CD pipeline with the 
 
 ### Local Development
 
-#### Option 1: Using Docker Compose (Recommended)
+#### Using Docker Compose
 
 This will start MongoDB, Backend API, and Frontend together:
 
@@ -103,57 +103,6 @@ Services will be available at:
 - Frontend: `http://localhost:8080`
 - Backend API: `http://localhost:3000`
 - MongoDB: `localhost:27017`
-
-#### Option 2: Manual Setup
-
-1. **Start MongoDB:**
-   ```bash
-   docker run -d -p 27017:27017 --name mongodb mongo:7.0
-   ```
-
-2. **Backend Setup:**
-   ```bash
-   cd backend
-   npm install
-   npm run dev
-   ```
-   Backend will run at `http://localhost:3000`
-
-3. **Frontend Setup:**
-   ```bash
-   cd frontend
-   npm install
-   npm run dev
-   ```
-   Frontend will run at `http://localhost:5173`
-
-### Docker
-
-#### Full Stack with Docker Compose
-
-```bash
-docker-compose up -d
-```
-
-#### Individual Containers
-
-1. **Build backend container:**
-   ```bash
-   docker build -t bugbounty-backend ./backend
-   ```
-
-2. **Build frontend container:**
-   ```bash
-   docker build -t bugbounty-frontend ./frontend
-   ```
-
-3. **Run with network:**
-   ```bash
-   docker network create bugbounty-network
-   docker run -d --name mongodb --network bugbounty-network mongo:7.0
-   docker run -d --name backend --network bugbounty-network -p 3000:3000 bugbounty-backend
-   docker run -d --name frontend --network bugbounty-network -p 8080:80 bugbounty-frontend
-   ```
 
 ### Kubernetes Deployment
 
@@ -174,8 +123,8 @@ docker-compose up -d
 ## CI/CD Pipeline Configuration
 
 The CI/CD pipeline is configured in `.github/workflows/ci-cd.yml` and automatically runs on:
-- Push to `main` or `master` branches
-- Pull requests to `main` or `master` branches
+- Push to `main` branches
+- Pull requests to `main` branches
 - Manual workflow dispatch
 
 ### Required Secrets
