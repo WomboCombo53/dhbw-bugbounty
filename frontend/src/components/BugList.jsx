@@ -30,7 +30,7 @@ function BugList({ bugs }) {
             <p><strong>Description:</strong> {bug.description}</p>
             <p><strong>Reporter:</strong> {bug.reporterEmail}</p>
             {bug.bountyAmount && (
-              <p><strong>Bounty:</strong> ${bug.bountyAmount}</p>
+              <p><strong>Bounty:</strong> €{bug.bountyAmount}</p>
             )}
             <p><strong>Status:</strong> <span className="status-badge">{bug.status}</span></p>
             <p className="timestamp">
