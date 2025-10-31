@@ -87,6 +87,10 @@ function App() {
             <BugList bugs={bugs} />
           )}
         </section>
+
+        <section>
+          Bugbounty-Tracker v0.2.1 | © Matthias Fauser & Michael Biser
+        </section>
       </main>
     </div>
   );
