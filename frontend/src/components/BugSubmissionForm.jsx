@@ -104,7 +104,7 @@ function BugSubmissionForm({ onSubmit }) {
       </div>
 
       <div className="form-group">
-        <label htmlFor="bountyAmount">Bounty Amount ($)</label>
+        <label htmlFor="bountyAmount">Bounty Amount (€)</label>
         <input
           type="number"
           id="bountyAmount"
