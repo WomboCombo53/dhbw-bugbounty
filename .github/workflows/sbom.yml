@@ -5,10 +5,20 @@ on:
 
 jobs:
   sbom:
-    name: Generate SBOM
+    name: Generate SBOM - ${{ matrix.component }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    strategy:
+      matrix:
+        component: [frontend, backend]
+        include:
+          - component: frontend
+            path: ./frontend
+            node-version: '22'
+          - component: backend
+            path: ./backend
+            node-version: '22'
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
@@ -16,23 +26,23 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: '22'
+          node-version: ${{ matrix.node-version }}
 
       - name: Install dependencies
-        working-directory: ./frontend
+        working-directory: ${{ matrix.path }}
         run: npm ci
 
       - name: Generate SBOM with Syft
         uses: anchore/sbom-action@v0
         with:
-          path: ./frontend
+          path: ${{ matrix.path }}
           format: cyclonedx-json
-          output-file: sbom.json
+          output-file: sbom-${{ matrix.component }}.json
           upload-artifact: true
 
       - name: Upload SBOM
         uses: actions/upload-artifact@v5
         with:
-          name: sbom
-          path: sbom.json
+          name: sbom-${{ matrix.component }}
+          path: sbom-${{ matrix.component }}.json
           retention-days: 30

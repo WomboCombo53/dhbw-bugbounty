@@ -59,14 +59,16 @@ jobs:
       packages: write
       id-token: write
     with:
-      image-digest: ${{ needs.container-build.outputs.image-digest }}
+      frontend-image-digest: ${{ needs.container-build.outputs.frontend-image-digest }}
+      backend-image-digest: ${{ needs.container-build.outputs.backend-image-digest }}
 
   # Step 8: Quality Gate
   quality-gate:
     needs: [secret-scan, sca, container-build, sign-image]
     uses: ./.github/workflows/quality-gate.yml
     with:
-      signature-verified: ${{ needs.sign-image.outputs.signature-verified }}
+      frontend-signature-verified: ${{ needs.sign-image.outputs.frontend-signature-verified }}
+      backend-signature-verified: ${{ needs.sign-image.outputs.backend-signature-verified }}
 
   # Step 9: Deploy to Kubernetes
   deploy:
@@ -78,4 +80,5 @@ jobs:
       issues: write
       pull-requests: write
     with:
-      image-digest: ${{ needs.container-build.outputs.image-digest }}
+      frontend-image-digest: ${{ needs.container-build.outputs.frontend-image-digest }}
+      backend-image-digest: ${{ needs.container-build.outputs.backend-image-digest }}

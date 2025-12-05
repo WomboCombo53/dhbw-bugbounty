@@ -14,8 +14,10 @@ A React.js-based bug bounty tracking system that allows users to submit security
   - Reporter contact information
   - Expected bounty amount
 - **Bug Tracking Dashboard**: View all submitted bugs with status tracking
+- **Persistent Storage**: MongoDB database for bug reports
+- **REST API**: Express.js backend with comprehensive endpoints
 - **Responsive Design**: Mobile-friendly interface
-- **Real-time Updates**: Client-side state management
+- **Real-time Updates**: Server-side persistence with instant feedback
 
 ### Security & CI/CD Pipeline
 
@@ -74,42 +76,33 @@ The project implements a comprehensive security-focused CI/CD pipeline with the 
 ## Getting Started
 
 ### Prerequisites
-- Node.js 18.x or higher
+- Node.js 20.x or higher
 - npm or yarn
-- Docker (for containerization)
+- Docker & Docker Compose (for containerization)
+- MongoDB (included in Docker Compose setup)
 - kubectl (for Kubernetes deployment)
 
 ### Local Development
 
-1. **Install dependencies:**
-   ```bash
-   cd frontend
-   npm install
-   ```
+#### Using Docker Compose
 
-2. **Run development server:**
-   ```bash
-   npm run dev
-   ```
-   The application will be available at `http://localhost:3000`
+This will start MongoDB, Backend API, and Frontend together:
 
-3. **Build for production:**
-   ```bash
-   npm run build
-   ```
+```bash
+# Start all services
+docker-compose up -d
 
-### Docker
+# View logs
+docker-compose logs -f
 
-1. **Build container image:**
-   ```bash
-   docker build -t bugbounty-tracker ./frontend
-   ```
+# Stop all services
+docker-compose down
+```
 
-2. **Run container:**
-   ```bash
-   docker run -p 8080:80 bugbounty-tracker
-   ```
-   Access the application at `http://localhost:8080`
+Services will be available at:
+- Frontend: `http://localhost:8080`
+- Backend API: `http://localhost:3000`
+- MongoDB: `localhost:27017`
 
 ### Kubernetes Deployment
 
@@ -130,8 +123,8 @@ The project implements a comprehensive security-focused CI/CD pipeline with the 
 ## CI/CD Pipeline Configuration
 
 The CI/CD pipeline is configured in `.github/workflows/ci-cd.yml` and automatically runs on:
-- Push to `main` or `master` branches
-- Pull requests to `main` or `master` branches
+- Push to `main` branches
+- Pull requests to `main` branches
 - Manual workflow dispatch
 
 ### Required Secrets
@@ -161,18 +154,34 @@ ghcr.io/<username>/<repository>:tag
 │   │   │   ├── BugSubmissionForm.css
 │   │   │   ├── BugList.jsx
 │   │   │   └── BugList.css
-│   │   ├── App.jsx
+│   │   ├── App.jsx            # Updated with API integration
 │   │   ├── App.css
 │   │   ├── main.jsx
 │   │   └── index.css
 │   ├── Dockerfile             # Multi-stage container build
 │   ├── nginx.conf             # Nginx configuration
-│   ├── vite.config.js         # Vite build configuration
+│   ├── vite.config.js         # Vite build configuration with proxy
 │   ├── package.json           # Dependencies and scripts
+│   ├── .env.development       # Development environment variables
+│   ├── .env.production        # Production environment variables
 │   └── index.html
+├── backend/
+│   ├── models/
+│   │   └── Bug.js             # MongoDB Bug model
+│   ├── routes/
+│   │   └── bugs.js            # API routes
+│   ├── config/
+│   │   └── db.js              # MongoDB connection
+│   ├── server.js              # Express server entry point
+│   ├── Dockerfile             # Production Docker image
+│   ├── Dockerfile.dev         # Development Docker image
+│   ├── package.json           # Backend dependencies
+│   ├── .env.example           # Environment template
+│   ├── .env                   # Environment variables
+│   └── README.md              # Backend documentation
 ├── k8s/
 │   └── deployment.yaml        # Kubernetes manifests
-├── backend/                   # Backend directory (empty for now)
+├── docker-compose.yml         # Full stack orchestration
 └── README.md
 ```
 
@@ -195,8 +204,10 @@ The pipeline enforces the following quality gates:
 ## Technology Stack
 
 - **Frontend**: React 18, Vite
+- **Backend**: Express.js, Node.js 20
+- **Database**: MongoDB 7.0
 - **Styling**: CSS3 with responsive design
-- **Container**: Docker, nginx
+- **Container**: Docker, Docker Compose, nginx
 - **CI/CD**: GitHub Actions
 - **Security Tools**:
   - Gitleaks (secret scanning)
@@ -204,6 +215,8 @@ The pipeline enforces the following quality gates:
   - Trivy (SCA & container scanning)
   - Syft (SBOM generation)
   - Cosign (image signing)
+  - Helmet.js (security headers)
+  - Express Rate Limit (DDoS protection)
 - **Deployment**: Kubernetes
 
 ## License

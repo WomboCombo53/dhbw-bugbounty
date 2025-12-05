@@ -33,8 +33,8 @@ echo "✅ Docker image built successfully"
 
 # Apply Kubernetes resources
 echo ""
-echo "☸️  Deploying to Kubernetes..."
-cd k8s
+echo "☸️ Deploying to Kubernetes..."
+cd ../k8s
 kubectl apply -f deployment.yaml
 
 if [ $? -ne 0 ]; then
@@ -46,7 +46,9 @@ echo ""
 echo "✅ Kubernetes resources applied"
 
 # Wait for deployment to be ready
-echo ""
+echo "🔄 Redeploying on Kubernetes..."
+kubectl rollout restart deployment/bugbounty-tracker
+
 echo "⏳ Waiting for deployment to be ready..."
 kubectl rollout status deployment/bugbounty-tracker
 
@@ -62,3 +64,6 @@ echo "   kubectl get pods"
 echo ""
 echo "📝 View logs:"
 echo "   kubectl logs -l app=bugbounty-tracker"
+
+echo "Running minikube service automatically..."
+minikube service bugbounty-tracker-service

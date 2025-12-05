@@ -3,8 +3,12 @@ name: Quality Gate
 on:
   workflow_call:
     inputs:
-      signature-verified:
-        description: "Whether the image signature was verified"
+      frontend-signature-verified:
+        description: "Whether the frontend image signature was verified"
+        required: true
+        type: string
+      backend-signature-verified:
+        description: "Whether the backend image signature was verified"
         required: true
         type: string
 
@@ -15,15 +19,25 @@ jobs:
     permissions:
       contents: read
     steps:
-      - name: Download audit results
+      - name: Download frontend audit results
         uses: actions/download-artifact@v5
         with:
-          name: audit-results
+          name: audit-results-frontend
 
-      - name: Download container scan results
+      - name: Download backend audit results
         uses: actions/download-artifact@v5
         with:
-          name: container-scan-results
+          name: audit-results-backend
+
+      - name: Download frontend container scan results
+        uses: actions/download-artifact@v5
+        with:
+          name: container-scan-results-frontend
+
+      - name: Download backend container scan results
+        uses: actions/download-artifact@v5
+        with:
+          name: container-scan-results-backend
 
       - name: Evaluate Quality Gate
         id: quality-gate
@@ -36,41 +50,71 @@ jobs:
           # Check 2: Check CVSS >= 7.0 vulnerabilities
           echo "📊 Check 2: Checking for CVSS >= 7.0 vulnerabilities..."
           
-          # Check npm audit results
+          TOTAL_HIGH=0
+          TOTAL_CRITICAL=0
+          
+          # Check frontend npm audit results
           if [ -f audit-check.json ]; then
             HIGH_VULNS=$(jq '.metadata.vulnerabilities.high // 0' audit-check.json)
             CRITICAL_VULNS=$(jq '.metadata.vulnerabilities.critical // 0' audit-check.json)
-            echo "  - NPM High vulnerabilities: $HIGH_VULNS"
-            echo "  - NPM Critical vulnerabilities: $CRITICAL_VULNS"
-            
-            if [ "$CRITICAL_VULNS" -gt 0 ] || [ "$HIGH_VULNS" -gt 0 ]; then
-              echo "❌ FAILED: Found vulnerabilities with CVSS >= 7.0 in dependencies"
-              exit 1
-            fi
+            echo "  - Frontend NPM High vulnerabilities: $HIGH_VULNS"
+            echo "  - Frontend NPM Critical vulnerabilities: $CRITICAL_VULNS"
+            TOTAL_HIGH=$((TOTAL_HIGH + HIGH_VULNS))
+            TOTAL_CRITICAL=$((TOTAL_CRITICAL + CRITICAL_VULNS))
           fi
           
-          # Check container scan results
-          if [ -f trivy-report.json ]; then
-            CONTAINER_HIGH=$(jq '[.Results[]?.Vulnerabilities[]? | select(.Severity == "HIGH")] | length' trivy-report.json)
-            CONTAINER_CRITICAL=$(jq '[.Results[]?.Vulnerabilities[]? | select(.Severity == "CRITICAL")] | length' trivy-report.json)
-            echo "  - Container High vulnerabilities: $CONTAINER_HIGH"
-            echo "  - Container Critical vulnerabilities: $CONTAINER_CRITICAL"
-            
-            if [ "$CONTAINER_CRITICAL" -gt 0 ] || [ "$CONTAINER_HIGH" -gt 0 ]; then
-              echo "❌ FAILED: Found vulnerabilities with CVSS >= 7.0 in container image"
-              exit 1
-            fi
+          # Check backend npm audit results (in parent directory)
+          cd .. || true
+          if [ -f audit-check.json ]; then
+            HIGH_VULNS=$(jq '.metadata.vulnerabilities.high // 0' audit-check.json)
+            CRITICAL_VULNS=$(jq '.metadata.vulnerabilities.critical // 0' audit-check.json)
+            echo "  - Backend NPM High vulnerabilities: $HIGH_VULNS"
+            echo "  - Backend NPM Critical vulnerabilities: $CRITICAL_VULNS"
+            TOTAL_HIGH=$((TOTAL_HIGH + HIGH_VULNS))
+            TOTAL_CRITICAL=$((TOTAL_CRITICAL + CRITICAL_VULNS))
+          fi
+          cd - || true
+          
+          # Check frontend container scan results
+          if [ -f trivy-report-frontend.json ]; then
+            CONTAINER_HIGH=$(jq '[.Results[]?.Vulnerabilities[]? | select(.Severity == "HIGH")] | length' trivy-report-frontend.json)
+            CONTAINER_CRITICAL=$(jq '[.Results[]?.Vulnerabilities[]? | select(.Severity == "CRITICAL")] | length' trivy-report-frontend.json)
+            echo "  - Frontend Container High vulnerabilities: $CONTAINER_HIGH"
+            echo "  - Frontend Container Critical vulnerabilities: $CONTAINER_CRITICAL"
+            TOTAL_HIGH=$((TOTAL_HIGH + CONTAINER_HIGH))
+            TOTAL_CRITICAL=$((TOTAL_CRITICAL + CONTAINER_CRITICAL))
+          fi
+          
+          # Check backend container scan results
+          if [ -f trivy-report-backend.json ]; then
+            CONTAINER_HIGH=$(jq '[.Results[]?.Vulnerabilities[]? | select(.Severity == "HIGH")] | length' trivy-report-backend.json)
+            CONTAINER_CRITICAL=$(jq '[.Results[]?.Vulnerabilities[]? | select(.Severity == "CRITICAL")] | length' trivy-report-backend.json)
+            echo "  - Backend Container High vulnerabilities: $CONTAINER_HIGH"
+            echo "  - Backend Container Critical vulnerabilities: $CONTAINER_CRITICAL"
+            TOTAL_HIGH=$((TOTAL_HIGH + CONTAINER_HIGH))
+            TOTAL_CRITICAL=$((TOTAL_CRITICAL + CONTAINER_CRITICAL))
+          fi
+          
+          if [ "$TOTAL_CRITICAL" -gt 0 ] || [ "$TOTAL_HIGH" -gt 0 ]; then
+            echo "❌ FAILED: Found $TOTAL_CRITICAL critical and $TOTAL_HIGH high vulnerabilities with CVSS >= 7.0"
+            exit 1
           fi
           
           echo "✅ Check 2: No high/critical vulnerabilities found"
           
           # Check 3: Signature verification
-          echo "📝 Check 3: Verifying image signature..."
-          if [ "${{ inputs.signature-verified }}" != "true" ]; then
-            echo "❌ FAILED: Image signature verification failed"
+          echo "📝 Check 3: Verifying image signatures..."
+          if [ "${{ inputs.frontend-signature-verified }}" != "true" ]; then
+            echo "❌ FAILED: Frontend image signature verification failed"
             exit 1
           fi
-          echo "✅ Check 3: Image signature verified"
+          echo "✅ Frontend signature verified"
+          
+          if [ "${{ inputs.backend-signature-verified }}" != "true" ]; then
+            echo "❌ FAILED: Backend image signature verification failed"
+            exit 1
+          fi
+          echo "✅ Backend signature verified"
           
           echo ""
           echo "🎉 All quality gate checks passed!"
