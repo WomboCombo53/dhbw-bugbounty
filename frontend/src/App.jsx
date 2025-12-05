@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from "react";
 import BugSubmissionForm from "./components/BugSubmissionForm";
 import BugList from "./components/BugList";
+import Login from './components/Login';
 import "./App.css";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 function App() {
   const [bugs, setBugs] = useState([]);
+  const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -64,34 +66,62 @@ function App() {
     }
   };
 
+  function handleLogin(googleUser) {
+    setUser(googleUser);
+  }
+
+  function handleLogout() {
+    setUser(null);
+    google.accounts.id.disableAutoSelect();
+  }
+
   return (
     <div className="App">
       <header className="App-header">
         <h1>Bug Bounty Tracker</h1>
-        <p>Report security vulnerabilities and track bug bounties</p>
-      </header>
-
-      {error && <div className="error-banner">⚠️ {error}</div>}
-
-      <main className="App-main">
-        <section className="submission-section">
-          <h2>Submit a Bug Report</h2>
-          <BugSubmissionForm onSubmit={handleBugSubmit} />
-        </section>
-
-        <section className="list-section">
-          <h2>Reported Bugs</h2>
-          {loading ? (
-            <div className="loading">Loading bug reports...</div>
+          {user ? (
+            <>
+              <p>
+                Angemeldet als: <strong>{user.name}</strong>
+              </p>
+              <img
+                src={user.picture}
+                referrerPolicy="no-referrer"
+                alt="Profil"
+                style={{ width: "50px", borderRadius: "50%" }}
+              />
+              <button onClick={handleLogout}>Logout</button>
+            </>
           ) : (
-            <BugList bugs={bugs} />
+            <p>Nicht eingeloggt</p>
           )}
-        </section>
+      </header>
+      {error && <div className="error-banner">⚠️ {error}</div>}
+      {!user ? (
+          <Login onLogin={handleLogin} />
+      ) : (
+        <>
+          <main className="App-main">
+            <section className="submission-section">
+              <h2>Submit a Bug Report</h2>
+              <BugSubmissionForm onSubmit={handleBugSubmit} />
+            </section>
 
-        <section>
-          Bugbounty-Tracker v0.2.1 | © Matthias Fauser & Michael Biser
-        </section>
-      </main>
+            <section className="list-section">
+              <h2>Reported Bugs</h2>
+              {loading ? (
+                <div className="loading">Loading bug reports...</div>
+              ) : (
+                <BugList bugs={bugs} />
+              )}
+            </section>
+            <section>
+              Bugbounty-Tracker v0.2.1 | © Matthias Fauser & Michael Biser
+            </section>
+          </main>
+        </>
+      )}
+      
     </div>
   );
 }
