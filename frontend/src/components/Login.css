@@ -1,0 +1,17 @@
+.login-container{
+  margin: auto;
+  padding: 25px;
+  width: 50vw;
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  background: linear-gradient(135deg, #324497 0%, #0004ff 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+}
+
+a{
+  color: white;
+}
