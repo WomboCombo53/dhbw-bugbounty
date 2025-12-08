@@ -88,14 +88,27 @@ function App() {
     setUser(googleUser);
   }
 
-  function handleLogout() {
+  async function handleLogout() {
     setUser(null);
     google.accounts.id.disableAutoSelect();
-    fetch(`${API_URL}/api/auth/logout`, {
+
+    const tokenRes = await fetch(`${API_URL}/api/csrf-token`, {
+      method: "GET",
+      credentials: "include",
+    });
+    const { csrfToken } = await tokenRes.json();
+
+    const response = await fetch(`${API_URL}/api/auth/logout`, {
       method: "POST",
       credentials: "include",
-    }); // delete session on server side
+      headers: {
+        "Content-Type": "application/json",
+        "x-csrf-token": csrfToken,
+      },
+    });
+    const data = await response.json();
   }
+
 
   if (checkingSession) return <div>Loading session...</div>;
 
