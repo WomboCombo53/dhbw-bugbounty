@@ -22,12 +22,12 @@ router.post('/', async (req, res) => {
   try {
     const { googleId } = req.body;
 
-    if (!googleId) {
-      return res.status(400).json({ success: false, message: 'googleId is required' });
+    if (!googleId || typeof googleId !== "string") {
+      return res.status(400).json({ success: false, message: 'googleId is required and must be a string' });
     }
 
     const options = { upsert: true, new: true, setDefaultsOnInsert: true };
-    const user = await User.findOneAndUpdate({ googleId }, {}, options);
+    const user = await User.findOneAndUpdate({ googleId: { $eq: googleId } }, {}, options);
 
     return res.json({ success: true, data: user });
   } catch (err) {
