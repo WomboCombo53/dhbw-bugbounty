@@ -8,7 +8,7 @@ import session from "express-session";
 import connectDB from './config/db.js';
 import bugRoutes from './routes/bugs.js';
 import authRoutes from './routes/auth.js';
-
+import lusca from 'lusca';
 // Load environment variables
 dotenv.config();
 
@@ -68,6 +68,14 @@ app.use('/api/bugs', postLimiter);
 // Body parser middleware
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// CSRF protection
+app.use(lusca.csrf());
+
+// Endpoint to fetch CSRF token (for frontend use)
+app.get('/api/csrf-token', (req, res) => {
+  res.json({ csrfToken: req.csrfToken() });
+});
 
 // Health check endpoint
 app.get('/health', (req, res) => {
