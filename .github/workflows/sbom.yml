@@ -39,10 +39,3 @@ jobs:
           format: cyclonedx-json
           output-file: sbom-${{ matrix.component }}-${{ github.run_id }}-${{ github.job }}.json
           upload-artifact: true
-
-      - name: Upload SBOM
-        uses: actions/upload-artifact@v5
-        with:
-          name: sbom-${{ matrix.component }}
-          path: sbom-${{ matrix.component }}.json
-          retention-days: 30
