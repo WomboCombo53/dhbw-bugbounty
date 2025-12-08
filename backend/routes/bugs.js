@@ -30,6 +30,25 @@ const bugValidation = [
     .isFloat({ min: 0 }).withMessage('Bounty amount must be a positive number')
 ];
 
+function requireAuth(req, res, next) {
+  if (!req.session?.user) {
+    return res.status(401).json({ success: false, message: 'Not authenticated' });
+  }
+  next();
+}
+
+function requireRole(...roles) {
+  return (req, res, next) => {
+    if (!req.session?.user) {
+      return res.status(401).json({ success: false, message: 'Not authenticated' });
+    }
+    if (!roles.includes(req.session.user.role)) {
+      return res.status(403).json({ success: false, message: 'Forbidden' });
+    }
+    next();
+  };
+}
+
 // GET /api/bugs - Get all bugs
 router.get('/', async (req, res) => {
   try {
@@ -69,7 +88,7 @@ router.get('/', async (req, res) => {
 });
 
 // GET /api/bugs/:id - Get a single bug by ID
-router.get('/:id', async (req, res) => {
+router.get('/:id', requireAuth, async (req, res) => {
   try {
     const bug = await Bug.findById(req.params.id);
     
@@ -95,7 +114,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // POST /api/bugs - Create a new bug report
-router.post('/', bugValidation, async (req, res) => {
+router.post('/', requireAuth, bugValidation, async (req, res) => {
   try {
     // Check for validation errors
     const errors = validationResult(req);
@@ -137,7 +156,7 @@ router.post('/', bugValidation, async (req, res) => {
 });
 
 // PATCH /api/bugs/:id - Update bug status
-router.patch('/:id', async (req, res) => {
+router.patch('/:id', requireRole('admin', 'developer'), async (req, res) => {
   try {
     const { status } = req.body;
     
@@ -184,7 +203,7 @@ router.patch('/:id', async (req, res) => {
 });
 
 // DELETE /api/bugs/:id - Delete a bug report (admin only - add auth later)
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', requireRole('admin'), async (req, res) => {
   try {
     const bug = await Bug.findByIdAndDelete(req.params.id);
     
@@ -210,7 +229,7 @@ router.delete('/:id', async (req, res) => {
 });
 
 // GET /api/bugs/stats - Get statistics
-router.get('/statistics/summary', async (req, res) => {
+router.get('/statistics/summary', requireRole('admin'), async (req, res) => {
   try {
     const stats = await Bug.aggregate([
       {

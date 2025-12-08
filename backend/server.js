@@ -4,8 +4,10 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
 import mongoose from 'mongoose';
+import session from "express-session";
 import connectDB from './config/db.js';
 import bugRoutes from './routes/bugs.js';
+import authRoutes from './routes/auth.js';
 
 // Load environment variables
 dotenv.config();
@@ -19,6 +21,20 @@ connectDB();
 
 // Security middleware
 app.use(helmet());
+
+// Session
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET || "dev-secret",
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      httpOnly: true,
+      secure: false,         // in production = true (HTTPS)
+      sameSite: "lax",
+    },
+  })
+);
 
 // CORS configuration
 const corsOptions = {
@@ -65,6 +81,7 @@ app.get('/health', (req, res) => {
 
 // API routes
 app.use('/api/bugs', bugRoutes);
+app.use('/api/auth', authRoutes);
 
 // 404 handler
 app.use((req, res) => {

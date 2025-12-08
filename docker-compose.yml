@@ -29,10 +29,10 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - NODE_ENV=development
       - PORT=3000
       - MONGODB_URI=mongodb://mongodb:27017/bugbounty
-      - CORS_ORIGIN=http://localhost:5173
+      - CORS_ORIGIN=http://localhost:8080
+      - ./backend/.env
     volumes:
       - ./backend:/app
       - /app/node_modules
@@ -62,7 +62,8 @@ services:
     networks:
       - bugbounty-network
     environment:
-      - VITE_API_URL=http://localhost:3000
+      - VITE_API_URL=http://backend:3000
+      - ./frontend/.env
 
 volumes:
   mongodb_data:

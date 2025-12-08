@@ -3,12 +3,14 @@ import './Login.css'
 
 export default function Login({ onLogin }) {
   const [user, setUser] = useState(null);
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
+  //Google Button initialisieren
   useEffect(() => {
     if (!window.google) return;
 
     google.accounts.id.initialize({
-      client_id: "533923725466-j9bdmlol98gt7abptshpnpggdd7i5iuk.apps.googleusercontent.com",
+      client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
       callback: handleCredentialResponse,
     });
 
@@ -20,21 +22,22 @@ export default function Login({ onLogin }) {
         width: "250"
       }
     );
-
   }, []);
 
-  function decodeJwt(token) {
-    const base64 = token.split(".")[1];
-    return JSON.parse(atob(base64));
-  }
-
+  //Google Login Callback
   function handleCredentialResponse(response) {
-    const data = decodeJwt(response.credential);
-    setUser(data);
-
-    if (typeof onLogin === "function") {
-      onLogin(data);
-    }
+    fetch(`${API_URL}/api/auth/google`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ credential: response.credential }),
+    })
+      .then(res => res.json())
+      .then(userData => {
+        setUser(userData.user); // set backend-user
+        if (typeof onLogin === "function") onLogin(userData.user);
+      })
+      .catch(err => console.error('Google login error:', err));
   }
 
   return (
@@ -42,7 +45,6 @@ export default function Login({ onLogin }) {
         <h2>Login</h2>
         <br></br>
         <div id="googleSignInDiv"></div>
-        <a href="anon">Anonym anmelden</a>
     </div>
   );
 }
