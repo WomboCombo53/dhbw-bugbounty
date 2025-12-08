@@ -30,7 +30,7 @@ app.use(
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      secure: false,         // in production = true (HTTPS)
+      secure: process.env.NODE_ENV === "production", // Only send cookie over HTTPS in production
       sameSite: "lax",
     },
   })
