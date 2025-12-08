@@ -15,10 +15,10 @@ jobs:
         include:
           - component: frontend
             path: ./frontend
-            node-version: '22'
+            node-version: 'lts/*'
           - component: backend
             path: ./backend
-            node-version: '22'
+            node-version: 'lts/*'
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
