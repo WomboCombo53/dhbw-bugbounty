@@ -70,8 +70,11 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // CSRF protection
-app.use(lusca.csrf());
-
+// skip CSRF for /api/auth/google because google uses its own token
+app.use((req, res, next) => {
+  if (req.path === '/api/auth/google') return next();
+  lusca.csrf()(req, res, next);
+});
 // Endpoint to fetch CSRF token (for frontend use)
 app.get('/api/csrf-token', (req, res) => {
   res.json({ csrfToken: req.csrfToken() });
