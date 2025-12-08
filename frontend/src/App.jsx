@@ -1,16 +1,13 @@
 import React, { useState, useEffect } from "react";
-import BugSubmissionForm from "./components/BugSubmissionForm";
-import BugList from "./components/BugList";
 import Login from './components/Login';
+import AdminDashboard from './components/AdminDashboard';
+import ReporterDashboard from './components/ReporterDashboard';
 import "./App.css";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 function App() {
-  const [bugs, setBugs] = useState([]);
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
   const [checkingSession, setCheckingSession] = useState(true);
 
   //check session on load 
@@ -29,60 +26,6 @@ function App() {
       .catch(err => console.error("Error checking session:", err))
       .finally(() => setCheckingSession(false));
   }, []);
-
-  // Fetch bugs from API
-  const fetchBugs = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const response = await fetch(`${API_URL}/api/bugs`);
-      const result = await response.json();
-
-      if (result.success) {
-        setBugs(result.data);
-      } else {
-        setError("Failed to fetch bug reports");
-      }
-    } catch (err) {
-      console.error("Error fetching bugs:", err);
-      setError("Unable to connect to the server");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Load bugs if user logged in
-  useEffect(() => {
-    if (user) fetchBugs();
-  }, [user]);
-
-  const handleBugSubmit = async (bugData) => {
-    setError(null);
-    try {
-      const response = await fetch(`${API_URL}/api/bugs`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(bugData),
-      });
-
-      const result = await response.json();
-
-      if (result.success) {
-        // Add new bug to the list
-        setBugs([result.data, ...bugs]);
-        alert("Bug report submitted successfully!");
-      } else {
-        setError(result.message || "Failed to submit bug report");
-        alert(`Error: ${result.message}`);
-      }
-    } catch (err) {
-      console.error("Error submitting bug:", err);
-      setError("Unable to submit bug report");
-      alert("Error: Unable to submit bug report. Please try again.");
-    }
-  };
 
   function handleLogin(googleUser) {
     setUser(googleUser);
@@ -106,7 +49,6 @@ function App() {
         "x-csrf-token": csrfToken,
       },
     });
-    const data = await response.json();
   }
 
 
@@ -133,7 +75,6 @@ function App() {
             <p>Nicht eingeloggt</p>
           )}
       </header>
-      {error && <div className="error-banner">⚠️ {error}</div>}
       {!user ? (
           <Login onLogin={handleLogin} />
       ) : (
@@ -142,10 +83,7 @@ function App() {
             {user && (
               <>
                 {user.role === "admin" && (
-                  <div>
-                    <h2>Admin Dashboard</h2>
-                    {/* Admin-Dashboard */}
-                  </div>
+                  <AdminDashboard/>
                 )}
 
                 {user.role === "developer" && (
@@ -156,31 +94,16 @@ function App() {
                 )}
 
                 {user.role === "reporter" && (
-                  <>
-                    <section className="submission-section">
-                      <h2>Submit a Bug Report</h2>
-                      <BugSubmissionForm onSubmit={handleBugSubmit} />
-                    </section>
-
-                    <section className="list-section">
-                      <h2>Reported Bugs</h2>
-                      {loading ? (
-                        <div className="loading">Loading bug reports...</div>
-                      ) : (
-                        <BugList bugs={bugs} />
-                      )}
-                    </section>
-                  </>
+                  <ReporterDashboard/>
                 )}
               </>
             )}
-              <section>
-                Bugbounty-Tracker v0.2.1 | © Matthias Fauser & Michael Biser
-              </section>
           </>
         </main>
       )}
-      
+      <section className="footer">
+        Bugbounty-Tracker v0.2.1 | © Matthias Fauser & Michael Biser
+      </section>
     </div>
   );
 }
