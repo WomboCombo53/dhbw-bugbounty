@@ -5,10 +5,10 @@ import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
 import mongoose from 'mongoose';
 import session from "express-session";
+import lusca from 'lusca';
 import connectDB from './config/db.js';
 import bugRoutes from './routes/bugs.js';
 import authRoutes from './routes/auth.js';
-import lusca from 'lusca';
 // Load environment variables
 dotenv.config();
 
