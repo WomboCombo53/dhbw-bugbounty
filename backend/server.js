@@ -4,9 +4,11 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
 import mongoose from 'mongoose';
+import session from "express-session";
+import lusca from 'lusca';
 import connectDB from './config/db.js';
 import bugRoutes from './routes/bugs.js';
-
+import authRoutes from './routes/auth.js';
 // Load environment variables
 dotenv.config();
 
@@ -20,14 +22,54 @@ connectDB();
 // Security middleware
 app.use(helmet());
 
+// Body parser middleware
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Session
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET || "dev-secret",
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      httpOnly: true,
+      secure: false, //process.env.NODE_ENV === "production", // Only send cookie over HTTPS in production
+      sameSite: "lax",
+    },
+  })
+);
+
 // CORS configuration
 const corsOptions = {
-  origin: process.env.CORS_ORIGIN || "http://localhost:5173",
+  origin: process.env.CORS_ORIGIN || "http://localhost:8080",
   methods: ["GET", "POST", "PATCH", "DELETE"],
-  allowedHeaders: ["Content-Type", "Authorization"],
+  allowedHeaders: ["Content-Type", "Authorization", "x-csrf-token"],
   credentials: true,
 };
 app.use(cors(corsOptions));
+
+// CSRF protection
+// skip CSRF for /api/auth/google because google uses its own token
+app.use((req, res, next) => {
+  if (req.path === '/api/auth/google') return next();
+  lusca.csrf()(req, res, next);
+});
+
+// fetch CSRF token
+app.get('/api/csrf-token', (req, res) => {
+  res.json({ csrfToken: req.csrfToken() });
+});
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.json({
+    success: true,
+    message: 'Bug Bounty API is running',
+    timestamp: new Date().toISOString(),
+    mongodb: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
+  });
+});
 
 // Rate limiting
 const limiter = rateLimit({
@@ -49,21 +91,8 @@ const postLimiter = rateLimit({
 });
 app.use('/api/bugs', postLimiter);
 
-// Body parser middleware
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-
-// Health check endpoint
-app.get('/health', (req, res) => {
-  res.json({
-    success: true,
-    message: 'Bug Bounty API is running',
-    timestamp: new Date().toISOString(),
-    mongodb: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
-  });
-});
-
 // API routes
+app.use('/api/auth', authRoutes);
 app.use('/api/bugs', bugRoutes);
 
 // 404 handler

@@ -15,12 +15,12 @@ jobs:
         include:
           - component: frontend
             path: ./frontend
-            node-version: '22'
+            node-version: 'lts/*'
             build-command: npm run build
             artifact-path: frontend/dist/
           - component: backend
             path: ./backend
-            node-version: '22'
+            node-version: 'lts/*'
             build-command: npm ci --production
             artifact-path: backend/
     steps:

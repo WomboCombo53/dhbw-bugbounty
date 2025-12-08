@@ -11,6 +11,24 @@ function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [checkingSession, setCheckingSession] = useState(true);
+
+  //check session on load 
+  useEffect(() => {
+    fetch(`${API_URL}/api/auth/me`, {
+      credentials: 'include',
+    })
+      .then(res => res.json())
+      .then(sessionUser => {
+        if (sessionUser.loggedIn){
+          setUser(sessionUser.user);
+        }else{
+          setUser(null);
+        }
+      })
+      .catch(err => console.error("Error checking session:", err))
+      .finally(() => setCheckingSession(false));
+  }, []);
 
   // Fetch bugs from API
   const fetchBugs = async () => {
@@ -33,10 +51,10 @@ function App() {
     }
   };
 
-  // Load bugs on component mount
+  // Load bugs if user logged in
   useEffect(() => {
-    fetchBugs();
-  }, []);
+    if (user) fetchBugs();
+  }, [user]);
 
   const handleBugSubmit = async (bugData) => {
     setError(null);
@@ -70,10 +88,29 @@ function App() {
     setUser(googleUser);
   }
 
-  function handleLogout() {
+  async function handleLogout() {
     setUser(null);
     google.accounts.id.disableAutoSelect();
+
+    const tokenRes = await fetch(`${API_URL}/api/csrf-token`, {
+      method: "GET",
+      credentials: "include",
+    });
+    const { csrfToken } = await tokenRes.json();
+
+    const response = await fetch(`${API_URL}/api/auth/logout`, {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+        "x-csrf-token": csrfToken,
+      },
+    });
+    const data = await response.json();
   }
+
+
+  if (checkingSession) return <div>Loading session...</div>;
 
   return (
     <div className="App">
@@ -100,26 +137,48 @@ function App() {
       {!user ? (
           <Login onLogin={handleLogin} />
       ) : (
-        <>
-          <main className="App-main">
-            <section className="submission-section">
-              <h2>Submit a Bug Report</h2>
-              <BugSubmissionForm onSubmit={handleBugSubmit} />
-            </section>
+        <main className="App-main">
+          <>
+            {user && (
+              <>
+                {user.role === "admin" && (
+                  <div>
+                    <h2>Admin Dashboard</h2>
+                    {/* Admin-Dashboard */}
+                  </div>
+                )}
 
-            <section className="list-section">
-              <h2>Reported Bugs</h2>
-              {loading ? (
-                <div className="loading">Loading bug reports...</div>
-              ) : (
-                <BugList bugs={bugs} />
-              )}
-            </section>
-            <section>
-              Bugbounty-Tracker v0.2.1 | © Matthias Fauser & Michael Biser
-            </section>
-          </main>
-        </>
+                {user.role === "developer" && (
+                  <div>
+                    <h2>Developer Dashboard</h2>
+                    {/* Developer-Dashboard */}
+                  </div>
+                )}
+
+                {user.role === "reporter" && (
+                  <>
+                    <section className="submission-section">
+                      <h2>Submit a Bug Report</h2>
+                      <BugSubmissionForm onSubmit={handleBugSubmit} />
+                    </section>
+
+                    <section className="list-section">
+                      <h2>Reported Bugs</h2>
+                      {loading ? (
+                        <div className="loading">Loading bug reports...</div>
+                      ) : (
+                        <BugList bugs={bugs} />
+                      )}
+                    </section>
+                  </>
+                )}
+              </>
+            )}
+              <section>
+                Bugbounty-Tracker v0.2.1 | © Matthias Fauser & Michael Biser
+              </section>
+          </>
+        </main>
       )}
       
     </div>

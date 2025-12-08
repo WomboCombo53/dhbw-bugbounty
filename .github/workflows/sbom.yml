@@ -15,10 +15,10 @@ jobs:
         include:
           - component: frontend
             path: ./frontend
-            node-version: '22'
+            node-version: 'lts/*'
           - component: backend
             path: ./backend
-            node-version: '22'
+            node-version: 'lts/*'
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
@@ -38,11 +38,11 @@ jobs:
           path: ${{ matrix.path }}
           format: cyclonedx-json
           output-file: sbom-${{ matrix.component }}.json
-          upload-artifact: true
+          upload-artifact: false
 
       - name: Upload SBOM
         uses: actions/upload-artifact@v5
         with:
-          name: sbom-${{ matrix.component }}
+          name: sbom-${{ matrix.component }}-${{ github.run_id }}
           path: sbom-${{ matrix.component }}.json
           retention-days: 30
