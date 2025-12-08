@@ -37,7 +37,7 @@ jobs:
         with:
           path: ${{ matrix.path }}
           format: cyclonedx-json
-          output-file: sbom-${{ matrix.component }}.json
+          output-file: sbom-${{ matrix.component }}-${{ github.run_id }}-${{ github.job }}.json
           upload-artifact: true
 
       - name: Upload SBOM
