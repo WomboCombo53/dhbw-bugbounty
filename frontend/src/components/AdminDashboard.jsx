@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
-import { DndContext, useDraggable, useDroppable } from "@dnd-kit/core";
-import BugList from './BugList';
-import TeamList from './TeamList';
+import { DndContext, useDraggable, useDroppable, DragOverlay } from "@dnd-kit/core";
+import Bug from './Bug';
+import Team from './Team';
 import './AdminDashboard.css';
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
@@ -19,8 +19,8 @@ function DraggableBug({ bug }) {
   };
 
   return (
-    <div ref={setNodeRef} style={style} {...listeners} {...attributes} className="bug-card">
-      {bug.title}
+    <div ref={setNodeRef} style={style} {...listeners} {...attributes}>
+      <Bug bug={bug} />
     </div>
   );
 }
@@ -32,15 +32,11 @@ function DroppableTeam({ team, children }) {
 
   const style = {
     border: isOver ? "2px dashed #007bff" : "2px solid #ccc",
-    padding: "10px",
-    minHeight: "100px",
-    marginBottom: "20px",
   };
 
   return (
     <div ref={setNodeRef} style={style}>
-      <h3>{team.teamName}</h3>
-      {children}
+      <Team team={team} s/>
     </div>
   );
 }
@@ -57,21 +53,51 @@ export default function AdminDashboard() {
     const [teamleader, setTeamleader] = useState("");
     const [newDeveloperEmail, setNewDeveloperEmail] = useState("");
     const [developerList, setDeveloperList] = useState([]);
+    const [activeBug, setActiveBug] = useState(null);
 
-    const handleDragEnd = (event) => {
+    const handleDragEnd = async (event) => {
       const { over, active } = event;
-      if (over) {
-        console.log(`Bug ${active.id} dropped on team ${over.id}`);
-        // TODO: API call zum Zuordnen des Bugs an das Team
+      if (!over) return;
+
+      const bugId = active.id;
+      const teamName = over.id;
+
+      try {
+        const tokenRes = await fetch(`${API_URL}/api/csrf-token`, {
+          method: "GET",
+          credentials: "include",
+        });
+        const { csrfToken } = await tokenRes.json();
+
+        const res = await fetch(`${API_URL}/api/bugs/${bugId}/assign-team`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-csrf-token": csrfToken
+          },
+          credentials: "include",
+          body: JSON.stringify({ teamName })
+        });
+
+        const result = await res.json();
+        if (!result.success) {
+          console.error(result.message);
+          return;
+        }
+        setBugs(prev => prev.map(b => b._id === bugId ? result.data : b));
+
+      } catch (err) {
+        console.error("Error assigning bug:", err);
       }
     };
-
     // Fetch bugs from API
     const fetchBugs = async () => {
         setLoading(true);
         setError(null);
         try {
-        const response = await fetch(`${API_URL}/api/bugs`);
+        const response = await fetch(`${API_URL}/api/bugs`, {
+          credentials: "include"
+        });
         const result = await response.json();
 
         if (result.success) {
@@ -89,7 +115,9 @@ export default function AdminDashboard() {
 
     const fetchTeams = async () => {
       try {
-          const response = await fetch(`${API_URL}/api/teams`);
+          const response = await fetch(`${API_URL}/api/teams`, {
+            credentials: "include"
+          });
           const result = await response.json();
 
           if (result.success) {
@@ -159,18 +187,8 @@ export default function AdminDashboard() {
     };
 
   return (
-    <div className="admin-dashboard">
-      <section id="bug-list">
-        <h2>Bugs</h2>
-        <BugList bugs={bugs}/>
-      </section>
-
-      <section id="team-list">
-        <div className="headline">
-            <h2>Teams</h2>
-            <button className="add-button" onClick={() => setShowCreateTeamModal(true)}>+</button>
-        </div>
-        {showCreateTeamModal ? (
+    <div>
+      {showCreateTeamModal ? (
         <div className="modal-backdrop">
             <div className="modal">
                 <h3>Create New Team</h3>
@@ -198,10 +216,50 @@ export default function AdminDashboard() {
                 </div>
             </div>
         </div>
-      ) : (
-        <TeamList teams={teams}/>
+      ): (
+        <div className="admin-dashboard">
+          <div className="headline">
+              <h2>Unassigned Bug Reports</h2>
+          </div>
+          <div className="headline">
+              <h2>Teams</h2>
+              <button className="add-button" onClick={() => setShowCreateTeamModal(true)}>+</button>
+          </div>
+          
+          <DndContext
+            onDragStart={(event) => {
+              const bug = bugs.find(b => b._id === event.active.id);
+              setActiveBug(bug);
+            }}
+            onDragEnd={(event) => {
+              handleDragEnd(event);
+              setActiveBug(null);
+            }}
+            onDragCancel={() => setActiveBug(null)}
+          >
+            <div className="bug-list">
+              {bugs
+              .filter(bug => !bug.assignedTeam)
+              .map((bug) => (
+                <DraggableBug key={bug._id} bug={bug} />
+              ))}
+            </div>
+
+            <div className="team-list">
+              {teams.map((team) => (
+                <DroppableTeam key={team.teamName} team={team}>
+                  {team.assignedBugs.map((bug) => (
+                    <DraggableBug key={bug._id} bug={bug} />
+                  ))}
+                </DroppableTeam>
+              ))}
+            </div>
+            <DragOverlay>
+              {activeBug ? <DraggableBug bug={activeBug} /> : null}
+            </DragOverlay>
+          </DndContext>
+        </div>
       )}
-      </section>
     </div>
   );
 }
