@@ -6,6 +6,8 @@ import dotenv from 'dotenv';
 import mongoose from 'mongoose';
 import session from "express-session";
 import lusca from 'lusca';
+import fs from "fs";
+import https from "https";
 import connectDB from './config/db.js';
 import bugRoutes from './routes/bugs.js';
 import authRoutes from './routes/auth.js';
@@ -115,10 +117,23 @@ app.use((err, req, res, next) => {
 });
 
 // Start server
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`📝 Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`🌐 CORS origin: ${corsOptions.origin}`);
-});
+if (process.env.SSL_KEY_PATH && process.env.SSL_CERT_PATH) {
+  const httpsOptions = {
+    key: fs.readFileSync(process.env.SSL_KEY_PATH),
+    cert: fs.readFileSync(process.env.SSL_CERT_PATH),
+  };
+
+  https.createServer(httpsOptions, app).listen(PORT, () => {
+    console.log(`🚀 Server running on port ${PORT} (HTTPS)`);
+    console.log(`📝 Environment: ${process.env.NODE_ENV || "development"}`);
+    console.log(`🌐 CORS origin: ${corsOptions.origin}`);
+  });
+} else {
+  app.listen(PORT, () => {
+    console.log(`🚀 Server running on port ${PORT} (HTTP)`);
+    console.log(`📝 Environment: ${process.env.NODE_ENV || "development"}`);
+    console.log(`🌐 CORS origin: ${corsOptions.origin}`);
+  });
+}
 
 export default app;

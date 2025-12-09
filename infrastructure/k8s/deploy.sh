@@ -18,6 +18,18 @@ echo "Applying Kubernetes resources..."
 echo "1. Base resources (Namespace, ServiceAccount)..."
 kubectl apply -f 00-base.yaml
 
+echo "Generating TLS certificates..."
+chmod +x ../pki/gen-certs.sh
+(cd ../pki && ./gen-certs.sh)
+
+echo "Creating TLS secret..."
+# Delete existing secret if it exists to ensure update
+kubectl delete secret bugbounty-tls -n bugbounty-ns --ignore-not-found
+kubectl create secret tls bugbounty-tls \
+    --cert=../pki/certs/server.crt \
+    --key=../pki/certs/server.key \
+    -n bugbounty-ns
+
 echo "2. Network Policies..."
 kubectl apply -f 01-network-policies.yaml
 
