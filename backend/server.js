@@ -9,6 +9,8 @@ import lusca from 'lusca';
 import connectDB from './config/db.js';
 import bugRoutes from './routes/bugs.js';
 import authRoutes from './routes/auth.js';
+import teamRoutes from './routes/teams.js';
+
 // Load environment variables
 dotenv.config();
 
@@ -89,11 +91,13 @@ const postLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
 });
+
 app.use('/api/bugs', postLimiter);
 
 // API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/bugs', bugRoutes);
+app.use('/api/teams', teamRoutes);
 
 // 404 handler
 app.use((req, res) => {
