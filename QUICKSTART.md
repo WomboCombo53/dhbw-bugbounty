@@ -6,6 +6,11 @@
 
 ## Starting the Application
 
+### Easily with makefile
+Go to the project's root directory and run `make`
+
+### Manually with docker compose
+
 1. **Start all services:**
    ```bash
    docker-compose up -d
