@@ -42,6 +42,10 @@ const bugSchema = new mongoose.Schema({
     enum: ['open', 'in-progress', 'resolved', 'closed', 'rejected'],
     default: 'open'
   },
+  assignedTeam: {
+    type: String,
+    default: null
+  },
   submittedAt: {
     type: Date,
     default: Date.now

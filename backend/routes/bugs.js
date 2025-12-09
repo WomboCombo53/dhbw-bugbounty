@@ -50,7 +50,7 @@ function requireRole(...roles) {
 }
 
 // GET /api/bugs - Get all bugs
-router.get('/', async (req, res) => {
+router.get('/', requireAuth, async (req, res) => {
   try {
     const { severity, status, companyName, limit = 50, skip = 0 } = req.query;
     
@@ -152,6 +152,29 @@ router.post('/', requireAuth, bugValidation, async (req, res) => {
       message: 'Error submitting bug report',
       error: error.message
     });
+  }
+});
+
+// POST /api/bugs/:bugId/assign-team - Assign bug to a team
+router.post('/:bugId/assign-team', requireRole('admin'), async (req, res) => {
+  const { bugId } = req.params;
+  const { teamName } = req.body;
+
+  if (!teamName) {
+    return res.status(400).json({ success: false, message: "teamName is required" });
+  }
+
+  try {
+    const bug = await Bug.findById(bugId);
+    if (!bug) return res.status(404).json({ success: false, message: "Bug not found" });
+
+    bug.assignedTeam = teamName;
+    await bug.save();
+
+    res.json({ success: true, data: bug });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: err.message });
   }
 });
 
