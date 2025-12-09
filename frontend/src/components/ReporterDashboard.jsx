@@ -38,11 +38,19 @@ export default function AdminDashboard() {
     const handleBugSubmit = async (bugData) => {
         setError(null);
         try {
+
+        const tokenRes = await fetch(`${API_URL}/api/csrf-token`, {
+            method: "GET",
+            credentials: "include",
+        });
+        const { csrfToken } = await tokenRes.json();
         const response = await fetch(`${API_URL}/api/bugs`, {
             method: "POST",
             headers: {
             "Content-Type": "application/json",
+            "x-csrf-token": csrfToken,
             },
+            credentials: "include",
             body: JSON.stringify(bugData),
         });
 
