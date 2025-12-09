@@ -1,0 +1,66 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+  namespace: bugbounty-ns
+  labels:
+    app: backend
+spec:
+  ports:
+  - port: 3000
+    targetPort: 3000
+  selector:
+    app: backend
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: bugbounty-ns
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      serviceAccountName: bugbounty-sa
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      containers:
+      - name: backend
+        image: ghcr.io/wombocombo53/dhbw-bugbounty-backend:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 3000
+        env:
+        - name: PORT
+          value: "3000"
+        - name: MONGODB_URI
+          value: "mongodb://mongodb:27017/bugbounty"
+        - name: CORS_ORIGIN
+          value: "http://localhost:8080"
+        securityContext:
+          readOnlyRootFilesystem: true
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 3000
+          initialDelaySeconds: 40
+          periodSeconds: 30
+      volumes:
+      - name: tmp
+        emptyDir: {}
