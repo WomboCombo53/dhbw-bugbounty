@@ -79,6 +79,3 @@ jobs:
       contents: read
       issues: write
       pull-requests: write
-    with:
-      frontend-image-digest: ${{ needs.container-build.outputs.frontend-image-digest }}
-      backend-image-digest: ${{ needs.container-build.outputs.backend-image-digest }}

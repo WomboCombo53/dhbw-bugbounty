@@ -1,5 +1,8 @@
 name: Deploy to Kubernetes
 
+on:
+  workflow_call:
+
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
