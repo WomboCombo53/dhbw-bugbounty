@@ -15,7 +15,9 @@ export default function AdminDashboard() {
         setLoading(true);
         setError(null);
         try {
-        const response = await fetch(`${API_URL}/api/bugs`);
+        const response = await fetch(`${API_URL}/api/bugs`, {
+          credentials: "include"
+        });
         const result = await response.json();
 
         if (result.success) {
