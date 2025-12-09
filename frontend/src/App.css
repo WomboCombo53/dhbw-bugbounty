@@ -1,6 +1,6 @@
 .App {
-  min-height: 100vh;
-  padding: 20px;
+  margin: 0;
+  padding: 0;
 }
 
 .App-header {
@@ -22,20 +22,17 @@
 }
 
 .App-main {
-  max-width: 1200px;
-  margin: 0 auto;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 30px;
-  padding: 20px;
+  margin: auto;
+  height: 100%;
 }
 
-.submission-section,
-.list-section {
-  background: white;
-  border-radius: 12px;
-  padding: 30px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+.footer {
+  position: fixed;
+  bottom: 0;
+  background-color: #96969688;
+  width: 100%;
+  text-align: center;
+  padding: 0.5vh;
 }
 
 .error-banner {
@@ -55,22 +52,4 @@
   padding: 2rem;
   color: #666;
   font-size: 1.1rem;
-}
-
-.submission-section h2,
-.list-section h2 {
-  margin-bottom: 20px;
-  color: #333;
-  border-bottom: 3px solid #667eea;
-  padding-bottom: 10px;
-}
-
-@media (max-width: 968px) {
-  .App-main {
-    grid-template-columns: 1fr;
-  }
-  
-  .App-header h1 {
-    font-size: 2rem;
-  }
 }

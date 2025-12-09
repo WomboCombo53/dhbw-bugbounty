@@ -1,0 +1,65 @@
+.admin-dashboard{
+  display: grid;
+  grid-template-columns: auto auto;
+}
+
+h2, h3{
+  text-align: center;
+}
+
+.admin-dashboard section{
+  border-color: black;
+  border-radius: 10px;
+  border-width: 3px;
+}
+
+.headline{
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+}
+
+.add-button{
+  height: 25px;
+  aspect-ratio: 1/1;
+  width: auto;
+  border-radius: 5px;
+  border-width: 0;
+}
+
+.modal-backdrop{
+  background-color: #96969688;
+  border-radius: 50px;
+}
+
+.modal{
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 3%;
+  padding: 2% 10%;
+}
+
+.modal input{
+  font-size: 15px;
+  padding: 5px;
+  border-radius: 5px;
+  border-width: 0;
+  margin: 5px;
+  width: 90%;
+}
+
+.modal-buttons button{
+  border-radius: 5px;
+  border-width: 0;
+  margin: 5px;
+  padding: 10px;
+}
+
+.developerList li{
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}

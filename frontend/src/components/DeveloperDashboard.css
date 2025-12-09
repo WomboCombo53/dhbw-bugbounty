@@ -1,0 +1,16 @@
+.dev-dashboard{
+  display: flex;
+  margin: 0;
+  padding: 0;
+  flex-direction: column;
+}
+
+h2, h3{
+  text-align: center;
+}
+
+.dev-dashboard section{
+  border-color: black;
+  border-radius: 10px;
+  border-width: 3px;
+}

@@ -5,7 +5,7 @@ function BugList({ bugs }) {
   if (bugs.length === 0) {
     return (
       <div className="no-bugs">
-        <p>No bugs reported yet. Be the first to submit a bug report!</p>
+        <p>No bugs reported yet.</p>
       </div>
     )
   }
