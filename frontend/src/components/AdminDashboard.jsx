@@ -94,24 +94,6 @@ export default function AdminDashboard() {
         <TeamList teams={teams}/>
       )}
       </section>
-
-      
-    {/*<section>
-        <h2>Assign Bug to Team</h2>
-        <select onChange={(e) => setSelectedBugId(e.target.value)} value={selectedBugId}>
-          <option value="">Select Bug</option>
-          {bugs.map(bug => (
-            <option key={bug.id} value={bug.id}>{bug.title}</option>
-          ))}
-        </select>
-        <select onChange={(e) => setSelectedTeamId(e.target.value)} value={selectedTeamId}>
-          <option value="">Select Team</option>
-          {teams.map(team => (
-            <option key={team.id} value={team.id}>{team.name}</option>
-          ))}
-        </select>
-        <button onClick={handleAssignBug}>Assign Bug</button>
-      </section> */}
     </div>
   );
 }

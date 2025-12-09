@@ -2,7 +2,9 @@ import React, { useState, useEffect } from "react";
 import Login from './components/Login';
 import AdminDashboard from './components/AdminDashboard';
 import ReporterDashboard from './components/ReporterDashboard';
+import DeveloperDashboard from "./components/DeveloperDashboard";
 import "./App.css";
+
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
@@ -88,8 +90,7 @@ function App() {
 
                 {user.role === "developer" && (
                   <div>
-                    <h2>Developer Dashboard</h2>
-                    {/* Developer-Dashboard */}
+                    <DeveloperDashboard/>
                   </div>
                 )}
 
