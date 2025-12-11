@@ -28,14 +28,12 @@ function requireRole(...roles) {
 
 /**
  * POST /api/teams
- * Body: { teamName, department, description, teamleader, developers?}
- * Creates or updates a Team (Upsert) based on teamName.
+ * Body: { teamName, department, description, teamleader, developers?} - create new Team
  */
 router.post('/', requireRole('admin'), async (req, res) => {
   try {
     const { teamName, department, description, teamleader, developers } = req.body;
 
-    // Validate required fields
     if (!teamName || !department || !description || !teamleader) {
       return res.status(400).json({
         success: false,
@@ -43,27 +41,86 @@ router.post('/', requireRole('admin'), async (req, res) => {
       });
     }
 
-    const updateData = {
+    // check for duplicate teamName
+    const existing = await Team.findOne({ teamName });
+    if (existing) {
+      return res.status(400).json({
+        success: false,
+        message: "A team with this name already exists."
+      });
+    }
+
+    const newTeam = new Team({
+      teamName,
       department,
       description,
       teamleader,
-    };
+      developers: Array.isArray(developers) ? developers : []
+    });
 
-    if (Array.isArray(developers)) updateData.developers = developers;
+    await newTeam.save();
 
-    const options = { upsert: true, new: true, setDefaultsOnInsert: true };
-    const team = await Team.findOneAndUpdate(
-      { teamName: teamName },
-      updateData,
-      options
-    );
+    return res.json({ success: true, data: newTeam });
 
-    return res.json({ success: true, data: team });
   } catch (err) {
-    console.error('Error upserting Team:', err);
-    return res.status(500).json({ success: false, message: 'Error saving Team', error: err.message });
+    console.error('Error creating team:', err);
+    return res.status(500).json({
+      success: false,
+      message: 'Error creating team',
+      error: err.message
+    });
   }
 });
+
+/**
+ * PATCH /api/teams/:id - update Team based on id
+ */
+router.patch('/:id', requireRole('admin'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { teamName, department, description, teamleader, developers } = req.body;
+
+    // check if teamName is being updated to a duplicate
+    if (teamName) {
+      const duplicate = await Team.findOne({ teamName, _id: { $ne: id } });
+      if (duplicate) {
+        return res.status(400).json({
+          success: false,
+          message: "Another team with this name already exists."
+        });
+      }
+    }
+
+    // Build update object
+    const updateData = {};
+    if (teamName !== undefined) updateData.teamName = teamName;
+    if (department !== undefined) updateData.department = department;
+    if (description !== undefined) updateData.description = description;
+    if (teamleader !== undefined) updateData.teamleader = teamleader;
+    if (developers !== undefined) updateData.developers = developers;
+
+    const updatedTeam = await Team.findByIdAndUpdate(
+      id,
+      updateData,
+      { new: true }
+    );
+
+    if (!updatedTeam) {
+      return res.status(404).json({ success: false, message: "Team not found" });
+    }
+
+    return res.json({ success: true, data: updatedTeam });
+
+  } catch (err) {
+    console.error('Error updating team:', err);
+    return res.status(500).json({
+      success: false,
+      message: 'Error updating team',
+      error: err.message
+    });
+  }
+});
+
 
 /**
  * GET /api/teams/ - get all teams with optional filters
@@ -117,6 +174,36 @@ router.get('/:id', requireRole('admin'), async (req, res) => {
   } catch (err) {
     console.error('Error fetching Team:', err);
     res.status(500).json({ success: false, message: 'Error fetching Team', error: err.message });
+  }
+});
+
+/**
+ * DELETE /api/teams/:teamName - delete Team based on teamName
+ */
+router.delete('/:teamName', requireRole('admin'), async (req, res) => {
+  try {
+    const { teamName } = req.params;
+
+    const deletedTeam = await Team.findOneAndDelete({ teamName });
+
+    if (!deletedTeam) {
+      return res.status(404).json({
+        success: false,
+        message: 'Team not found'
+      });
+    }
+
+    return res.json({
+      success: true,
+      data: deletedTeam
+    });
+
+  } catch (err) {
+    return res.status(500).json({
+      success: false,
+      message: 'Error deleting team',
+      error: err.message
+    });
   }
 });
 

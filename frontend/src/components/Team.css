@@ -45,3 +45,9 @@
 .team-details strong {
   color: #333;
 }
+
+.team-last-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
