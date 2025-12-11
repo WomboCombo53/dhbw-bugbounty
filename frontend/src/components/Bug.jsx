@@ -1,7 +1,7 @@
 import React from 'react'
 import './Bug.css'
 
-function Bug({ bug }) {
+function Bug({ bug, onDelete, onDeletePointerDown }) {
 
   const getSeverityClass = (severity) => {
     return `severity-badge severity-${severity}`
@@ -33,10 +33,20 @@ function Bug({ bug }) {
           <strong>Status:</strong>{" "}
           <span className="status-badge">{bug.status}</span>
         </p>
-        <p className="timestamp">
-          <strong>Submitted:</strong>{" "}
-          {new Date(bug.submittedAt).toLocaleString()}
-        </p>
+        <div className="bug-last-row">
+          <p className="timestamp">
+            <strong>Submitted:</strong>{" "}
+            {new Date(bug.submittedAt).toLocaleString()}
+          </p>
+          {onDelete && (
+            <button 
+                onClick={(e) => {
+                  onDelete(bug);
+                }}
+                onPointerDown={onDeletePointerDown}
+              >Delete</button>
+          )}
+        </div>
       </div>
     </div>
   );

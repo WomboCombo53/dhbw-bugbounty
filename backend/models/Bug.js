@@ -44,7 +44,7 @@ const bugSchema = new mongoose.Schema({
   },
   assignedTeam: {
     type: String,
-    default: null
+    default: "unassigned"
   },
   submittedAt: {
     type: Date,

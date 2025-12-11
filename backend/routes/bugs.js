@@ -225,7 +225,7 @@ router.patch('/:id', requireRole('admin', 'developer'), async (req, res) => {
   }
 });
 
-// DELETE /api/bugs/:id - Delete a bug report (admin only - add auth later)
+// DELETE /api/bugs/:id - Delete a bug report
 router.delete('/:id', requireRole('admin'), async (req, res) => {
   try {
     const bug = await Bug.findByIdAndDelete(req.params.id);
