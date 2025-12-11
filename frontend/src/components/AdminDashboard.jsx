@@ -25,7 +25,7 @@ function DraggableBug({ bug }) {
   );
 }
 
-function DroppableTeam({ team, children }) {
+function DroppableTeam({ team, isDragging, setShowTeamBugs}) {
   const { isOver, setNodeRef } = useDroppable({
     id: team.teamName,
   });
@@ -35,8 +35,8 @@ function DroppableTeam({ team, children }) {
   };
 
   return (
-    <div ref={setNodeRef} style={style}>
-      <Team team={team} s/>
+    <div ref={setNodeRef} style={style}   onClick={() => {if (!isDragging) setShowTeamBugs(team.teamName);}}>
+      <Team team={team}/>
     </div>
   );
 }
@@ -54,6 +54,9 @@ export default function AdminDashboard() {
     const [newDeveloperEmail, setNewDeveloperEmail] = useState("");
     const [developerList, setDeveloperList] = useState([]);
     const [activeBug, setActiveBug] = useState(null);
+    const [isDragging, setIsDragging] = useState(false);
+    const [showTeamBugs, setShowTeamBugs] = useState(null);
+
 
     const handleDragEnd = async (event) => {
       const { over, active } = event;
@@ -219,7 +222,10 @@ export default function AdminDashboard() {
       ): (
         <div className="admin-dashboard">
           <div className="headline">
-              <h2>Unassigned Bug Reports</h2>
+              <h2>
+                {showTeamBugs ? `Bugs assigned to Team: ${showTeamBugs}` : "Unassigned Bug Reports"}
+              </h2>
+              <button onClick={() => setShowTeamBugs(null)}>Show unassigned</button>
           </div>
           <div className="headline">
               <h2>Teams</h2>
@@ -230,16 +236,21 @@ export default function AdminDashboard() {
             onDragStart={(event) => {
               const bug = bugs.find(b => b._id === event.active.id);
               setActiveBug(bug);
+              setIsDragging(true)
             }}
             onDragEnd={(event) => {
               handleDragEnd(event);
               setActiveBug(null);
+              setIsDragging(false);
             }}
-            onDragCancel={() => setActiveBug(null)}
+            onDragCancel={() => {
+              setActiveBug(null);
+              setIsDragging(false);
+            }}
           >
             <div className="bug-list">
               {bugs
-              .filter(bug => !bug.assignedTeam)
+              .filter(bug => bug.assignedTeam === showTeamBugs)
               .map((bug) => (
                 <DraggableBug key={bug._id} bug={bug} />
               ))}
@@ -247,10 +258,7 @@ export default function AdminDashboard() {
 
             <div className="team-list">
               {teams.map((team) => (
-                <DroppableTeam key={team.teamName} team={team}>
-                  {team.assignedBugs.map((bug) => (
-                    <DraggableBug key={bug._id} bug={bug} />
-                  ))}
+                <DroppableTeam key={team.teamName} team={team} isDragging={isDragging} setShowTeamBugs={setShowTeamBugs}>
                 </DroppableTeam>
               ))}
             </div>
