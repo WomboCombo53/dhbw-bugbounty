@@ -1,3 +1,6 @@
+# Custom SSL Certs
+infrastructure/pki/certs/
+
 # Dependencies
 node_modules/
 

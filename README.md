@@ -68,7 +68,6 @@ The project implements a comprehensive security-focused CI/CD pipeline with the 
 - Pipeline fails if any condition is not met
 
 #### 9. **Kubernetes Deployment**
-- Automated deployment to Kubernetes cluster
 - Uses signed and verified container images
 - Includes deployment, service, and ingress manifests
 - Security hardening with Pod Security Standards
@@ -104,22 +103,6 @@ Services will be available at:
 - Backend API: `http://localhost:3000`
 - MongoDB: `localhost:27017`
 
-### Kubernetes Deployment
-
-1. **Update the image reference in `k8s/deployment.yaml`:**
-   Replace `IMAGE_PLACEHOLDER` with your actual container image.
-
-2. **Apply Kubernetes manifests:**
-   ```bash
-   kubectl apply -f k8s/
-   ```
-
-3. **Verify deployment:**
-   ```bash
-   kubectl get pods -l app=bugbounty-tracker
-   kubectl get service bugbounty-tracker-service
-   ```
-
 ## CI/CD Pipeline Configuration
 
 The CI/CD pipeline is configured in `.github/workflows/ci-cd.yml` and automatically runs on:
@@ -127,62 +110,11 @@ The CI/CD pipeline is configured in `.github/workflows/ci-cd.yml` and automatica
 - Pull requests to `main` branches
 - Manual workflow dispatch
 
-### Required Secrets
-
-For full functionality, configure the following GitHub secrets:
-- `GITHUB_TOKEN`: Automatically provided by GitHub Actions
-- Optional: `KUBECONFIG`: For automated Kubernetes deployment
-
 ### Container Registry
 
 The pipeline uses GitHub Container Registry (GHCR). Images are automatically pushed to:
 ```
 ghcr.io/<username>/<repository>:tag
-```
-
-## Project Structure
-
-```
-.
-├── .github/
-│   └── workflows/
-│       └── ci-cd.yml          # CI/CD pipeline configuration
-├── frontend/
-│   ├── src/
-│   │   ├── components/
-│   │   │   ├── BugSubmissionForm.jsx
-│   │   │   ├── BugSubmissionForm.css
-│   │   │   ├── BugList.jsx
-│   │   │   └── BugList.css
-│   │   ├── App.jsx            # Updated with API integration
-│   │   ├── App.css
-│   │   ├── main.jsx
-│   │   └── index.css
-│   ├── Dockerfile             # Multi-stage container build
-│   ├── nginx.conf             # Nginx configuration
-│   ├── vite.config.js         # Vite build configuration with proxy
-│   ├── package.json           # Dependencies and scripts
-│   ├── .env.development       # Development environment variables
-│   ├── .env.production        # Production environment variables
-│   └── index.html
-├── backend/
-│   ├── models/
-│   │   └── Bug.js             # MongoDB Bug model
-│   ├── routes/
-│   │   └── bugs.js            # API routes
-│   ├── config/
-│   │   └── db.js              # MongoDB connection
-│   ├── server.js              # Express server entry point
-│   ├── Dockerfile             # Production Docker image
-│   ├── Dockerfile.dev         # Development Docker image
-│   ├── package.json           # Backend dependencies
-│   ├── .env.example           # Environment template
-│   ├── .env                   # Environment variables
-│   └── README.md              # Backend documentation
-├── k8s/
-│   └── deployment.yaml        # Kubernetes manifests
-├── docker-compose.yml         # Full stack orchestration
-└── README.md
 ```
 
 ## Security Features

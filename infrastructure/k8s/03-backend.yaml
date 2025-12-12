@@ -45,7 +45,11 @@ spec:
         - name: MONGODB_URI
           value: "mongodb://mongodb:27017/bugbounty"
         - name: CORS_ORIGIN
-          value: "http://localhost:8080"
+          value: "https://localhost:8443"
+        - name: SSL_KEY_PATH
+          value: "/etc/ssl/certs/tls.key"
+        - name: SSL_CERT_PATH
+          value: "/etc/ssl/certs/tls.crt"
         securityContext:
           readOnlyRootFilesystem: true
           allowPrivilegeEscalation: false
@@ -55,12 +59,19 @@ spec:
         volumeMounts:
         - name: tmp
           mountPath: /tmp
+        - name: tls-certs
+          mountPath: /etc/ssl/certs
+          readOnly: true
         livenessProbe:
           httpGet:
             path: /health
             port: 3000
+            scheme: HTTPS
           initialDelaySeconds: 40
           periodSeconds: 30
       volumes:
       - name: tmp
         emptyDir: {}
+      - name: tls-certs
+        secret:
+          secretName: bugbounty-tls
