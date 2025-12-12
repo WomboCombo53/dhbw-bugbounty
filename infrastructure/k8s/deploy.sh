@@ -48,8 +48,9 @@ echo ""
 echo " To check the status of your pods, run:"
 echo "   kubectl get pods -n bugbounty-ns"
 echo ""
-echo " To access the frontend (if using Minikube):"
-echo "   minikube service frontend -n bugbounty-ns"
+echo " To access the frontend via Port-Forwarding:"
+echo "   kubectl port-forward service/frontend 8080(or 8443):80(443) -n bugbounty-ns"
+echo "   Then open: http://localhost:8080 for http or https://localhost:8443 for https"
 
 alias kubectl='kubectl -n bugbounty-ns'
 echo "Bugbounty-Namespace set for kubectl commands"
