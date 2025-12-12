@@ -1,6 +1,8 @@
 import express from 'express';
 import { body, validationResult } from 'express-validator';
 import Bug from '../models/Bug.js';
+import Team from '../models/Team.js';
+import mongoose from 'mongoose';
 
 const router = express.Router();
 
@@ -158,17 +160,24 @@ router.post('/', requireAuth, bugValidation, async (req, res) => {
 // POST /api/bugs/:bugId/assign-team - Assign bug to a team
 router.post('/:bugId/assign-team', requireRole('admin'), async (req, res) => {
   const { bugId } = req.params;
-  const { teamName } = req.body;
+  const { teamId } = req.body;
 
-  if (!teamName) {
+  if (!teamId) {
     return res.status(400).json({ success: false, message: "teamName is required" });
+  }
+
+  if (!mongoose.Types.ObjectId.isValid(teamId)) {
+    return res.status(400).json({ success: false, message: "Invalid teamId format" });
   }
 
   try {
     const bug = await Bug.findById(bugId);
     if (!bug) return res.status(404).json({ success: false, message: "Bug not found" });
 
-    bug.assignedTeam = teamName;
+    const team = await Team.findById(teamId);
+    if (!team) return res.status(404).json({ success: false, message: "Team not found" });
+
+    bug.assignedTeam = team._id;
     await bug.save();
 
     res.json({ success: true, data: bug });

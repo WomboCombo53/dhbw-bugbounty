@@ -33,7 +33,7 @@ function Team({ team, style, onEdit, onDelete}) {
             <button 
               onClick={(e) => {
                 e.stopPropagation();
-                onDelete(team.teamName);
+                onDelete(team);
               }}
             >Delete</button>
           </div>

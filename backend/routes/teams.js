@@ -1,6 +1,9 @@
 import express from 'express';
 import Team from '../models/Team.js';
 import rateLimit from 'express-rate-limit';
+import User from '../models/User.js';
+import { body, validationResult } from 'express-validator';
+import mongoose from 'mongoose';
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -26,70 +29,130 @@ function requireRole(...roles) {
   };
 }
 
-// Utility function to escape special characters in regex -> prevent regex injection
-function escapeRegex(str) {
-  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
+const checkEmailsExist = async (emails) => {
+  const foundUsers = await User.find({ email: { $in: emails } }).lean();
+  if (foundUsers.length !== emails.length) {
+    const foundEmails = foundUsers.map(u => u.email);
+    const missing = emails.filter(e => !foundEmails.includes(e));
+    throw new Error(`Users not found for emails: ${missing.join(', ')}`);
+  }
+};
 
+const teamValidation = [
+  body('teamName')
+    .trim()
+    .notEmpty().withMessage('Team name is required')
+    .isLength({ max: 100 }).withMessage('Team name cannot exceed 100 characters'),
+
+  body('department')
+    .trim()
+    .isLength({ max: 100 }).withMessage('Department cannot exceed 100 characters'),
+
+  body('description')
+    .trim()
+    .isLength({ max: 2000 }).withMessage('Description cannot exceed 2000 characters'),
+
+  body('teamleader')
+      .trim()
+      .notEmpty().withMessage('Teamleader email is required')
+      .isEmail().withMessage('Teamleader must be a valid email'),
+
+  body('developers')
+    .optional()
+    .isArray().withMessage('Developers must be an array')
+    .custom(devs => {
+      for (const email of devs) {
+        if (!/\S+@\S+\.\S+/.test(email)) {
+          throw new Error(`Invalid email: ${email}`);
+        }
+      }
+      return true;
+    })
+];
 
 /**
  * POST /api/teams
  * Body: { teamName, department, description, teamleader, developers?} - create new Team
  */
-router.get('/', requireRole('admin'), async (req, res) => {
+router.post('/', requireRole('admin'), teamValidation, async (req, res) => {
   try {
-    let { department, teamleader, limit = 50, skip = 0 } = req.query;
+    // Check for validation errors
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array()
+      });
+    }
+    const { teamName, department, description, teamleader, developers } = req.body;
 
-    const filter = {};
-
-    if (department) {
-      filter.department = { $regex: escapeRegex(department), $options: 'i' };
+    // Check for duplicate teamName
+    const existing = await Team.findOne({ teamName });
+    if (existing) {
+      return res.status(400).json({
+        success: false,
+        message: "A team with this name already exists."
+      });
     }
 
-    if (teamleader) {
-      filter.teamleader = { $regex: escapeRegex(teamleader), $options: 'i' };
-    }
-
-    // enforce safe numeric limits
-    limit = Math.min(parseInt(limit) || 50, 100);
-    skip  = Math.max(parseInt(skip) || 0, 0);
-
-    const teams = await Team.find(filter)
-      .sort({ createdAt: -1 })
-      .limit(limit)
-      .skip(skip)
-      .lean();
-
-    const total = await Team.countDocuments(filter);
-
-    return res.json({
-      success: true,
-      data: teams,
-      pagination: { total, limit, skip }
+    // Verify teamleader and developers exist
+    await checkEmailsExist([teamleader, ...(developers || [])]);
+    
+    //trim string fields
+    const newTeam = new Team({
+      teamName: teamName.trim(),
+      department: department ? department.trim() : undefined,
+      description: description ? description.trim() : undefined,
+      teamleader: teamleader.trim(),
+      developers: Array.isArray(developers) ? developers : []
     });
 
+    await newTeam.save();
+
+    return res.status(201).json({ success: true, data: newTeam });
+
   } catch (err) {
+    console.error('Error creating team:', err);
     return res.status(500).json({
       success: false,
-      message: 'Error fetching teams',
+      message: 'Error creating team',
       error: err.message
     });
   }
 });
 
-
 /**
  * PATCH /api/teams/:id - update Team based on id
  */
-router.patch('/:id', requireRole('admin'), async (req, res) => {
+router.patch('/:id', requireRole('admin'), teamValidation, async (req, res) => {
   try {
-    const { id } = req.params;
-    const { teamName, department, description, teamleader, developers } = req.body;
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array()
+      });
+    }
 
-    // check if teamName is being updated to a duplicate
+    const { id } = req.params;
+    let { teamName, department, description, teamleader, developers } = req.body;
+
+    // Trim string fields
+    if (teamName) teamName = teamName.trim();
+    if (department) department = department.trim();
+    if (description) description = description.trim();
+    if (teamleader) teamleader = teamleader.trim();
+
+    if (teamleader || (developers && developers.length)) {
+      await checkEmailsExist([teamleader, ...(developers || [])]);
+    } 
+
+    // Check duplicate teamName if updated
     if (teamName) {
-      const duplicate = await Team.findOne({ teamName, _id: { $ne: id } });
-      if (duplicate) {
+      const existing = await Team.findOne({ teamName, _id: { $ne: id } });
+      if (existing) {
         return res.status(400).json({
           success: false,
           message: "Another team with this name already exists."
@@ -126,7 +189,6 @@ router.patch('/:id', requireRole('admin'), async (req, res) => {
     });
   }
 });
-
 
 /**
  * GET /api/teams/ - get all teams with optional filters
@@ -184,14 +246,17 @@ router.get('/:id', requireRole('admin'), async (req, res) => {
 });
 
 /**
- * DELETE /api/teams/:teamName - delete Team based on teamName
+ * DELETE /api/teams/:id - delete Team based on id
  */
-router.delete('/:teamName', requireRole('admin'), async (req, res) => {
+router.delete('/:id', requireRole('admin') , async (req, res) => {
   try {
-    const { teamName } = req.params;
+    const { id } = req.params;
 
-    const deletedTeam = await Team.findOneAndDelete({ teamName });
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ success: false, message: 'Invalid ID format' });
+    }
 
+    const deletedTeam = await Team.findByIdAndDelete(id);
     if (!deletedTeam) {
       return res.status(404).json({
         success: false,

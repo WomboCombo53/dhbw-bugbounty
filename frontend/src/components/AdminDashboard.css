@@ -72,8 +72,3 @@ h2, h3{
   flex-direction: row;
   align-items: center;
 }
-
-input:disabled {
-  background-color: #dfdfdf;
-  cursor: not-allowed;
-}

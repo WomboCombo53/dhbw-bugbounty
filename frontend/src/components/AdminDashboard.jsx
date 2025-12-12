@@ -27,7 +27,7 @@ function DraggableBug({ bug, deleteBug}) {
 
 function DroppableTeam({ team, isDragging, setShowTeamBugs, editTeam, deleteTeam}) {
   const { isOver, setNodeRef } = useDroppable({
-    id: team.teamName,
+    id: team._id,
   });
 
   const style = {
@@ -35,7 +35,7 @@ function DroppableTeam({ team, isDragging, setShowTeamBugs, editTeam, deleteTeam
   };
 
   return (
-    <div ref={setNodeRef} onClick={() => {if (!isDragging) setShowTeamBugs(team.teamName);}}>
+    <div ref={setNodeRef} onClick={() => {if (!isDragging) setShowTeamBugs(team._id);}}>
       <Team team={team} style={style} onEdit={editTeam} onDelete={deleteTeam}/>
     </div>
   );
@@ -88,7 +88,7 @@ export default function AdminDashboard() {
     if (!over) return; // dropped outside any droppable
 
     const bugId = active.id; 
-    const teamName = over.id; // could be "unassigned" or a team name
+    const teamId = over.id; // could be "unassigned" or a team name
 
     try {
       const tokenRes = await fetch(`${API_URL}/api/csrf-token`, {
@@ -104,7 +104,7 @@ export default function AdminDashboard() {
           "x-csrf-token": csrfToken
         },
         credentials: "include",
-        body: JSON.stringify({ teamName })
+        body: JSON.stringify({ teamId })
       });
 
       const result = await res.json();
@@ -259,16 +259,16 @@ export default function AdminDashboard() {
     }
   };
 
-  const deleteTeam = async (teamName) => {
+  const deleteTeam = async (team) => {
     //check if team has assigned bugs
-    const assignedBugs = bugs.filter(bug => bug.assignedTeam === teamName);
+    const assignedBugs = bugs.filter(bug => bug.assignedTeam?.toString() === team._id.toString());
     if (assignedBugs.length > 0) {
-      alert(`Cannot delete team "${teamName}" because it has assigned bugs. Please unassign or reassign the bugs before deleting the team.`);
+      alert(`Cannot delete team "${team.teamName}" because it has assigned bugs. Please unassign or reassign the bugs before deleting the team.`);
       return;
     }
 
     // show confirmation dialog
-    if (!window.confirm(`Are you sure you want to delete the team: ${teamName}? This action cannot be undone.`)) {
+    if (!window.confirm(`Are you sure you want to delete the team: ${team.teamName}? This action cannot be undone.`)) {
       return;
     }
     try {
@@ -278,7 +278,7 @@ export default function AdminDashboard() {
       });
       const { csrfToken } = await tokenRes.json();
 
-      const res = await fetch(`${API_URL}/api/teams/${teamName}`, {
+      const res = await fetch(`${API_URL}/api/teams/${team._id}`, {
         method: "DELETE",
         headers: {
           "x-csrf-token": csrfToken
@@ -290,7 +290,7 @@ export default function AdminDashboard() {
 
       if (result.success) {
         // refresh team list
-        setTeams(prev => prev.filter(t => t.teamName !== teamName));
+        setTeams(prev => prev.filter(t => t._id !== team._id));
       } else {
         console.error(result.message);
       }
@@ -340,7 +340,7 @@ export default function AdminDashboard() {
           <div className="modal-backdrop">
               <div className="modal">
                   <h3>Create New Team</h3>
-                  <input placeholder="Teamname" value={teamName} onChange={e => setTeamName(e.target.value)} disabled={!!editingTeam} /*dont allow changing teamName when editing a team */ />
+                  <input placeholder="Teamname" value={teamName} onChange={e => setTeamName(e.target.value)} />
                   <input placeholder="Department" value={department} onChange={e => setDepartment(e.target.value)} />
                   <input placeholder="Description" value={description} onChange={e => setDescription(e.target.value)} />
                   <input placeholder="Team-Leader (email)" value={teamleader} onChange={e => setTeamleader(e.target.value)} />
@@ -385,9 +385,9 @@ export default function AdminDashboard() {
           </div>
         ): null}
         <div className="headline">
-            <h2>
-              {showTeamBugs === "unassigned" ? "Unassigned Bug Reports" : `Bugs assigned to Team: ${showTeamBugs}`}
-            </h2>
+          <h2>
+            {showTeamBugs === "unassigned" ? "Unassigned Bug Reports" : `Bugs assigned to Team: ${teams.find(t => t._id === showTeamBugs)?.teamName || ""}`}
+          </h2>
         </div>
         <div className="headline">
             <h2>Teams</h2>
@@ -421,7 +421,7 @@ export default function AdminDashboard() {
           <div className="team-list">
             {showTeamBugs === "unassigned" ? null : (<DroppableUnassigned isDragging={isDragging} setShowTeamBugs={setShowTeamBugs}/>)}
             {teams.map((team) => (
-              <DroppableTeam key={team.teamName} team={team} isDragging={isDragging} setShowTeamBugs={setShowTeamBugs} editTeam={editTeam} deleteTeam={deleteTeam}>
+              <DroppableTeam key={team._id} team={team} isDragging={isDragging} setShowTeamBugs={setShowTeamBugs} editTeam={editTeam} deleteTeam={deleteTeam}>
               </DroppableTeam>
             ))}
           </div>

@@ -15,19 +15,19 @@ router.use(limiter);
 
 /**
  * POST /api/users
- * Body: { googleId }
- * creates or updates a user (Upsert) based on googleId.
+ * Body: { googleId, email}
+ * Create or update user based on googleId
  */
 router.post('/', async (req, res) => {
   try {
-    const { googleId } = req.body;
+    const { googleId, email } = req.body;
 
     if (!googleId || typeof googleId !== "string") {
       return res.status(400).json({ success: false, message: 'googleId is required and must be a string' });
     }
 
     const options = { upsert: true, new: true, setDefaultsOnInsert: true };
-    const user = await User.findOneAndUpdate({ googleId: { $eq: googleId } }, {}, options);
+    const user = await User.findOneAndUpdate({ googleId: { $eq: googleId }, email: {$eq: email}}, {}, options);
 
     return res.json({ success: true, data: user });
   } catch (err) {
