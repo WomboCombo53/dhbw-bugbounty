@@ -4,7 +4,8 @@ import User from '../models/User.js';
 
 const router = express.Router();
 
-const CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+// KEIN Secret, die Client ID darf öffentlich sein
+const CLIENT_ID = "533923725466-j9bdmlol98gt7abptshpnpggdd7i5iuk.apps.googleusercontent.com";
 const googleClient = new OAuth2Client(CLIENT_ID);
 
 //validate session

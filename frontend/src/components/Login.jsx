@@ -10,7 +10,9 @@ export default function Login({ onLogin }) {
     if (!window.google) return;
 
     google.accounts.id.initialize({
-      client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
+      // KEIN Secret, die Client ID darf öffentlich sein
+      client_id:
+        "533923725466-j9bdmlol98gt7abptshpnpggdd7i5iuk.apps.googleusercontent.com",
       callback: handleCredentialResponse,
     });
 
