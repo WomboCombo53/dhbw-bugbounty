@@ -4,7 +4,7 @@ import Bug from './Bug';
 import Team from './Team';
 import './AdminDashboard.css';
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+const API_URL = import.meta.env.VITE_API_URL || "https://localhost:3000";
 
 function DraggableBug({ bug, deleteBug}) {
   const { attributes, listeners, setNodeRef, transform } = useDraggable({

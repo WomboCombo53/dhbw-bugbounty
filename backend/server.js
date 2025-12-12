@@ -46,7 +46,7 @@ app.use(
 
 // CORS configuration
 const corsOptions = {
-  origin: process.env.CORS_ORIGIN || "http://localhost:8080",
+  origin: process.env.CORS_ORIGIN || "https://localhost:8443",
   methods: ["GET", "POST", "PATCH", "DELETE"],
   allowedHeaders: ["Content-Type", "Authorization", "x-csrf-token"],
   credentials: true,

@@ -3,7 +3,7 @@
 # Exit on error
 set -e
 
-echo "Deploying Bug Bounty Tracker to Kubernetes"
+echo "Deploying Built Bug Bounty Tracker to Kubernetes"
 echo "============================================"
 
 # Check if kubectl is installed
@@ -36,11 +36,25 @@ kubectl apply -f 01-network-policies.yaml
 echo "3. MongoDB..."
 kubectl apply -f 02-mongodb.yaml
 
+echo "Building Backend image..."
+if command -v minikube &> /dev/null; then
+    minikube image build -t backend:latest ../../backend
+else
+    echo "WARNING: minikube not found, skipping image build. Ensure images are available."
+fi
+
 echo "4. Backend..."
-kubectl apply -f 03-backend.yaml
+kubectl apply -f 03-backend-build.yaml
+
+echo "Building Frontend image..."
+if command -v minikube &> /dev/null; then
+    minikube image build -t frontend:latest ../../frontend
+else
+    echo "WARNING: minikube not found, skipping image build. Ensure images are available."
+fi
 
 echo "5. Frontend..."
-kubectl apply -f 04-frontend.yaml
+kubectl apply -f 04-frontend-build.yaml
 
 echo ""
 echo " Deployment applied successfully!"

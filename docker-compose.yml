@@ -62,7 +62,7 @@ services:
     networks:
       - bugbounty-network
     environment:
-      - VITE_API_URL=http://backend:3000
+      - VITE_API_URL=https://backend:3000
       - ./frontend/.env
 
 volumes:

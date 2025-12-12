@@ -3,7 +3,7 @@ import './Login.css'
 
 export default function Login({ onLogin }) {
   const [user, setUser] = useState(null);
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+  const API_URL = import.meta.env.VITE_API_URL || "https://localhost:3000";
 
   //Google Button initialisieren
   useEffect(() => {
@@ -29,17 +29,17 @@ export default function Login({ onLogin }) {
   //Google Login Callback
   function handleCredentialResponse(response) {
     fetch(`${API_URL}/api/auth/google`, {
-      method: 'POST',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ credential: response.credential }),
     })
-      .then(res => res.json())
-      .then(userData => {
+      .then((res) => res.json())
+      .then((userData) => {
         setUser(userData.user); // set backend-user
         if (typeof onLogin === "function") onLogin(userData.user);
       })
-      .catch(err => console.error('Google login error:', err));
+      .catch((err) => console.error("Login error: ", err));
   }
 
   return (
