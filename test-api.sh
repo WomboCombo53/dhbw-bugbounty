@@ -3,7 +3,8 @@
 # Bug Bounty Tracker - Test Script
 # This script tests the backend API endpoints
 
-API_URL="http://localhost:3000"
+API_URL="https://localhost:3000"
+CACERT="./infrastructure/pki/certs/ca.crt"
 GREEN='\033[0;32m'
 RED='\033[0;31m'
 YELLOW='\033[1;33m'
@@ -15,10 +16,10 @@ echo ""
 
 # Test 1: Health Check
 echo "1️⃣  Testing Health Endpoint..."
-HEALTH=$(curl -s -o /dev/null -w "%{http_code}" ${API_URL}/health)
+HEALTH=$(curl -s --cacert "$CACERT" -o /dev/null -w "%{http_code}" ${API_URL}/health)
 if [ $HEALTH -eq 200 ]; then
     echo -e "${GREEN}✅ Health check passed${NC}"
-    curl -s ${API_URL}/health | jq .
+    curl -s --cacert "$CACERT" ${API_URL}/health | jq .
 else
     echo -e "${RED}❌ Health check failed (HTTP $HEALTH)${NC}"
 fi
@@ -26,10 +27,10 @@ echo ""
 
 # Test 2: Get all bugs (should be empty initially)
 echo "2️⃣  Testing GET /api/bugs..."
-BUGS=$(curl -s -o /dev/null -w "%{http_code}" ${API_URL}/api/bugs)
+BUGS=$(curl -s --cacert "$CACERT" -o /dev/null -w "%{http_code}" ${API_URL}/api/bugs)
 if [ $BUGS -eq 200 ]; then
     echo -e "${GREEN}✅ GET bugs passed${NC}"
-    curl -s ${API_URL}/api/bugs | jq '.pagination'
+    curl -s --cacert "$CACERT" ${API_URL}/api/bugs | jq '.pagination'
 else
     echo -e "${RED}❌ GET bugs failed (HTTP $BUGS)${NC}"
 fi
@@ -37,7 +38,7 @@ echo ""
 
 # Test 3: Submit a test bug
 echo "3️⃣  Testing POST /api/bugs..."
-SUBMIT=$(curl -s -X POST ${API_URL}/api/bugs \
+SUBMIT=$(curl -s --cacert "$CACERT" -X POST ${API_URL}/api/bugs \
     -H "Content-Type: application/json" \
     -d '{
         "title": "Test SQL Injection Vulnerability",
@@ -61,10 +62,10 @@ echo ""
 # Test 4: Get the created bug by ID
 if [ ! -z "$BUG_ID" ]; then
     echo "4️⃣  Testing GET /api/bugs/:id..."
-    GET_BUG=$(curl -s -o /dev/null -w "%{http_code}" ${API_URL}/api/bugs/${BUG_ID})
+    GET_BUG=$(curl -s --cacert "$CACERT" -o /dev/null -w "%{http_code}" ${API_URL}/api/bugs/${BUG_ID})
     if [ $GET_BUG -eq 200 ]; then
         echo -e "${GREEN}✅ GET bug by ID passed${NC}"
-        curl -s ${API_URL}/api/bugs/${BUG_ID} | jq '.data | {title: .title, status: .status}'
+        curl -s --cacert "$CACERT" ${API_URL}/api/bugs/${BUG_ID} | jq '.data | {title: .title, status: .status}'
     else
         echo -e "${RED}❌ GET bug by ID failed (HTTP $GET_BUG)${NC}"
     fi
@@ -74,7 +75,7 @@ fi
 # Test 5: Update bug status
 if [ ! -z "$BUG_ID" ]; then
     echo "5️⃣  Testing PATCH /api/bugs/:id..."
-    UPDATE=$(curl -s -X PATCH ${API_URL}/api/bugs/${BUG_ID} \
+    UPDATE=$(curl -s --cacert "$CACERT" -X PATCH ${API_URL}/api/bugs/${BUG_ID} \
         -H "Content-Type: application/json" \
         -d '{"status": "in-progress"}')
     
@@ -90,10 +91,10 @@ fi
 
 # Test 6: Get statistics
 echo "6️⃣  Testing GET /api/bugs/statistics/summary..."
-STATS=$(curl -s -o /dev/null -w "%{http_code}" ${API_URL}/api/bugs/statistics/summary)
+STATS=$(curl -s --cacert "$CACERT" -o /dev/null -w "%{http_code}" ${API_URL}/api/bugs/statistics/summary)
 if [ $STATS -eq 200 ]; then
     echo -e "${GREEN}✅ GET statistics passed${NC}"
-    curl -s ${API_URL}/api/bugs/statistics/summary | jq '.data'
+    curl -s --cacert "$CACERT" ${API_URL}/api/bugs/statistics/summary | jq '.data'
 else
     echo -e "${RED}❌ GET statistics failed (HTTP $STATS)${NC}"
 fi
@@ -101,7 +102,7 @@ echo ""
 
 # Test 7: Get all bugs again (should have our test bug)
 echo "7️⃣  Testing GET /api/bugs (after submission)..."
-BUGS_AFTER=$(curl -s ${API_URL}/api/bugs)
+BUGS_AFTER=$(curl -s --cacert "$CACERT" ${API_URL}/api/bugs)
 BUG_COUNT=$(echo "$BUGS_AFTER" | jq '.pagination.total')
 if [ $BUG_COUNT -gt 0 ]; then
     echo -e "${GREEN}✅ Found $BUG_COUNT bug(s) in database${NC}"
@@ -114,7 +115,7 @@ echo ""
 # Test 8: Delete test bug (cleanup)
 if [ ! -z "$BUG_ID" ]; then
     echo "8️⃣  Cleaning up - DELETE /api/bugs/:id..."
-    DELETE=$(curl -s -o /dev/null -w "%{http_code}" -X DELETE ${API_URL}/api/bugs/${BUG_ID})
+    DELETE=$(curl -s --cacert "$CACERT" -o /dev/null -w "%{http_code}" -X DELETE ${API_URL}/api/bugs/${BUG_ID})
     if [ $DELETE -eq 200 ]; then
         echo -e "${GREEN}✅ DELETE bug passed (cleanup successful)${NC}"
     else
