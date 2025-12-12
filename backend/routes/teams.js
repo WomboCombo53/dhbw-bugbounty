@@ -42,7 +42,7 @@ router.post('/', requireRole('admin'), async (req, res) => {
     }
 
     // check for duplicate teamName
-    const existing = await Team.findOne({ teamName });
+    const existing = await Team.findOne({ teamName: { $eq: teamName } });
     if (existing) {
       return res.status(400).json({
         success: false,
