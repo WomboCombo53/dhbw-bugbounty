@@ -26,51 +26,57 @@ function requireRole(...roles) {
   };
 }
 
+// Utility function to escape special characters in regex -> prevent regex injection
+function escapeRegex(str) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+
 /**
  * POST /api/teams
  * Body: { teamName, department, description, teamleader, developers?} - create new Team
  */
-router.post('/', requireRole('admin'), async (req, res) => {
+router.get('/', requireRole('admin'), async (req, res) => {
   try {
-    const { teamName, department, description, teamleader, developers } = req.body;
+    let { department, teamleader, limit = 50, skip = 0 } = req.query;
 
-    if (!teamName || !department || !description || !teamleader) {
-      return res.status(400).json({
-        success: false,
-        message: "teamName, department, description and teamleader are required."
-      });
+    const filter = {};
+
+    if (department) {
+      filter.department = { $regex: escapeRegex(department), $options: 'i' };
     }
 
-    // check for duplicate teamName
-    const existing = await Team.findOne({ teamName: { $eq: teamName } });
-    if (existing) {
-      return res.status(400).json({
-        success: false,
-        message: "A team with this name already exists."
-      });
+    if (teamleader) {
+      filter.teamleader = { $regex: escapeRegex(teamleader), $options: 'i' };
     }
 
-    const newTeam = new Team({
-      teamName,
-      department,
-      description,
-      teamleader,
-      developers: Array.isArray(developers) ? developers : []
+    // enforce safe numeric limits
+    limit = Math.min(parseInt(limit) || 50, 100);
+    skip  = Math.max(parseInt(skip) || 0, 0);
+
+    const teams = await Team.find(filter)
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .skip(skip)
+      .lean();
+
+    const total = await Team.countDocuments(filter);
+
+    return res.json({
+      success: true,
+      data: teams,
+      pagination: { total, limit, skip }
     });
 
-    await newTeam.save();
-
-    return res.json({ success: true, data: newTeam });
-
   } catch (err) {
-    console.error('Error creating team:', err);
     return res.status(500).json({
       success: false,
-      message: 'Error creating team',
+      message: 'Error fetching teams',
       error: err.message
     });
   }
 });
+
 
 /**
  * PATCH /api/teams/:id - update Team based on id
