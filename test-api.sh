@@ -127,6 +127,6 @@ fi
 echo "=================================="
 echo "✨ API Testing Complete!"
 echo ""
-echo "Frontend: http://localhost:8080"
-echo "Backend:  http://localhost:3000"
+echo "Frontend: https://localhost:8443"
+echo "Backend:  https://localhost:3000"
 echo "MongoDB:  localhost:27017"

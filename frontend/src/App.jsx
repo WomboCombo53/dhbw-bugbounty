@@ -6,7 +6,7 @@ import DeveloperDashboard from "./components/DeveloperDashboard";
 import "./App.css";
 
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+const API_URL = import.meta.env.VITE_API_URL || "";
 
 function App() {
   const [user, setUser] = useState(null);

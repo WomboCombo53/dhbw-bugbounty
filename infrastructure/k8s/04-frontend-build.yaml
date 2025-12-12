@@ -103,14 +103,14 @@ spec:
         fsGroup: 101
       containers:
       - name: frontend
-        image: ghcr.io/wombocombo53/dhbw-bugbounty-frontend:latest
-        imagePullPolicy: Always
+        image: frontend:latest
+        imagePullPolicy: Never
         ports:
         - containerPort: 8080
         - containerPort: 8443
         env:
         - name: VITE_API_URL
-          value: "https://localhost:3000"
+          value: "http://backend:3000"
         securityContext:
           readOnlyRootFilesystem: true
           allowPrivilegeEscalation: false
