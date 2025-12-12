@@ -4,6 +4,7 @@ import rateLimit from 'express-rate-limit';
 import User from '../models/User.js';
 import { body, validationResult } from 'express-validator';
 import mongoose from 'mongoose';
+import lodash from "lodash";
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -151,7 +152,10 @@ router.patch('/:id', requireRole('admin'), teamValidation, async (req, res) => {
 
     // Check duplicate teamName if updated
     if (teamName) {
-      const existing = await Team.findOne({ teamName, _id: { $ne: id } });
+      const existing = await Team.findOne({
+        teamName: _.escape(teamName),
+        _id: { $ne: id },
+      });
       if (existing) {
         return res.status(400).json({
           success: false,
