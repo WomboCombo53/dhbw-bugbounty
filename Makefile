@@ -2,10 +2,15 @@
 
 # Default target
 all: start deploy open
+up: all
 build: start deploy-build open
 
 # Start Minikube if not running
 start:
+	@echo "🔧 Checking/installing dependencies (may prompt for sudo password once)..."
+	@chmod +x infrastructure/k8s/dependency-check.sh
+	@infrastructure/k8s/dependency-check.sh
+	
 	@echo "🚀 Checking Minikube status..."
 	@minikube status > /dev/null 2>&1 || (echo "Minikube is not running. Starting..." && minikube start)
 	@echo "Minikube is running"
@@ -38,10 +43,12 @@ open:
 		--selector=app=frontend \
 		--timeout=120s
 
-	@echo "🌐 --- Starting Port-Forwarding to http://localhost:8080, https://localhost:8443 and https://localhost:3000 ... ---"
+	@clear
+	@echo "Starting Port-Forwarding to https://localhost:8443 and https://localhost:3000 ..."
 	@echo "⚠️  Keep this terminal open. Press Ctrl+C to stop."
+	@echo "\n--- 🌐 The frontend website will be available at: https://localhost:8443 ---\n"
 	@kubectl port-forward service/backend 3000:3000 -n bugbounty-ns & \
-	kubectl port-forward service/frontend 8080:80 8443:443 -n bugbounty-ns
+	kubectl port-forward service/frontend 8443:443 -n bugbounty-ns
 
 # Clean up resources
 clean:
