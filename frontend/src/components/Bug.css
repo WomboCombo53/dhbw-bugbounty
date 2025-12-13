@@ -1,9 +1,10 @@
 
 .bug-card {
-  border: 2px solid #e0e0e0;
+  border: 2px solid #CED3DC;
   border-radius: 8px;
   padding: 20px;
   transition: transform 0.2s, box-shadow 0.2s;
+  background-color: #ABA9C3;
   
   user-select: none;
   -webkit-user-select: none; /* Safari */

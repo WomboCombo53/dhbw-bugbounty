@@ -60,22 +60,27 @@ function App() {
     <div className="App">
       <header className="App-header">
         <h1>Bug Bounty Tracker</h1>
-          {user ? (
-            <>
+        {user ? (
+          <div className="user-profile">
+            <div className="user-info">
               <p>
                 Angemeldet als: <strong>{user.name}</strong>
               </p>
-              <img
-                src={user.picture}
-                referrerPolicy="no-referrer"
-                alt="Profil"
-                style={{ width: "50px", borderRadius: "50%" }}
-              />
-              <button onClick={handleLogout}>Logout</button>
-            </>
-          ) : (
+              <button className="login-button" onClick={handleLogout}>Logout</button>
+            </div>         
+            <img
+              src={user.picture}
+              referrerPolicy="no-referrer"
+              alt="Profil"
+              style={{ width: "50px", height: "50px", borderRadius: "50%" }}
+            />
+          </div>
+        ) : (
+          <div className="user-profile">
             <p>Nicht eingeloggt</p>
-          )}
+            <img src="https://www.gravatar.com/avatar/?d=mp" style={{ width: "50px", height: "50%", borderRadius: "50%" }} referrerPolicy="no-referrer" alt="Profil"/>
+          </div>
+        )}
       </header>
       {!user ? (
           <Login onLogin={handleLogin} />

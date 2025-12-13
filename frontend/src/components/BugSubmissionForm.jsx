@@ -89,33 +89,6 @@ function BugSubmissionForm({ onSubmit }) {
           placeholder="Target company name"
         />
       </div>
-
-      <div className="form-group">
-        <label htmlFor="reporterEmail">Your Email *</label>
-        <input
-          type="email"
-          id="reporterEmail"
-          name="reporterEmail"
-          value={formData.reporterEmail}
-          onChange={handleChange}
-          required
-          placeholder="your.email@example.com"
-        />
-      </div>
-
-      <div className="form-group">
-        <label htmlFor="bountyAmount">Bounty Amount (€)</label>
-        <input
-          type="number"
-          id="bountyAmount"
-          name="bountyAmount"
-          value={formData.bountyAmount}
-          onChange={handleChange}
-          placeholder="Expected bounty amount"
-          min="0"
-        />
-      </div>
-
       <button type="submit" className="submit-btn">Submit Bug Report</button>
     </form>
   )

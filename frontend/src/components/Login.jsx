@@ -42,9 +42,12 @@ export default function Login({ onLogin }) {
 
   return (
     <div className="login-container">
-        <h2>Login</h2>
-        <br></br>
-        <div id="googleSignInDiv"></div>
+      <div className="login-box">
+          <h2>Login</h2>
+          <br></br>
+          <div id="googleSignInDiv"></div>
+      </div>
+       
     </div>
   );
 }

@@ -74,14 +74,14 @@ export default function AdminDashboard() {
     };
 
     return (
-        <div style={{ display: "grid", gridTemplateColumns: "auto auto" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "auto auto", gap: "0.75rem", padding: "1rem" }}>
             <section className="submission-section">
-                <h2>Submit a Bug Report</h2>
+                <h2 style={{margin: "1rem"}}>Submit a Bug Report</h2>
                 <BugSubmissionForm onSubmit={handleBugSubmit} />
             </section>
 
             <section className="list-section">
-                <h2>Reported Bugs</h2>
+                <h2 style={{margin: "1rem"}}>Reported Bugs</h2>
                 {loading ? (
                 <div className="loading">Loading bug reports...</div>
                 ) : (
