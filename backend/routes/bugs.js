@@ -6,23 +6,34 @@ import mongoose from 'mongoose';
 
 const router = express.Router();
 
+const TEXT_REGEX = /^[a-zA-Z0-9 äöüÄÖÜß.,:;!?()\-_'"\n\r]+$/;
+const NAME_REGEX = /^[a-zA-Z äöüÄÖÜß\-'.]+$/;
+
 // Validation middleware
 const bugValidation = [
   body('title')
     .trim()
     .notEmpty().withMessage('Title is required')
-    .isLength({ max: 200 }).withMessage('Title cannot exceed 200 characters'),
+    .isLength({ max: 200 }).withMessage('Title cannot exceed 200 characters')
+    .matches(TEXT_REGEX).withMessage('Title contains invalid characters'),
+
   body('description')
     .trim()
     .notEmpty().withMessage('Description is required')
-    .isLength({ max: 999 }).withMessage('Description cannot exceed 5000 characters'),
+    .isLength({ max: 5000 }).withMessage('Description cannot exceed 5000 characters')
+    .matches(TEXT_REGEX).withMessage('Description contains invalid characters'),
+
   body('severity')
-    .isIn(['low', 'medium', 'high', 'critical']).withMessage('Invalid severity level'),
+    .isIn(['low', 'medium', 'high', 'critical'])
+    .withMessage('Invalid severity level'),
+
   body('companyName')
     .trim()
     .notEmpty().withMessage('Company name is required')
-    .isLength({ max: 100 }).withMessage('Company name cannot exceed 100 characters'),
+    .isLength({ max: 100 }).withMessage('Company name cannot exceed 100 characters')
+    .matches(NAME_REGEX).withMessage('Company name contains invalid characters'),
 ];
+
 
 function requireAuth(req, res, next) {
   if (!req.session?.user) {

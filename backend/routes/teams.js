@@ -39,36 +39,41 @@ const checkEmailsExist = async (emails) => {
   }
 };
 
+const NAME_REGEX = /^[a-zA-Z0-9 äöüÄÖÜß\-_.()]{1,100}$/;
+const TEXT_REGEX = /^[a-zA-Z0-9 äöüÄÖÜß.,:;!?()\-_'"\n\r]{1,2000}$/;
+const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
 const teamValidation = [
   body('teamName')
     .trim()
     .notEmpty().withMessage('Team name is required')
-    .isLength({ max: 100 }).withMessage('Team name cannot exceed 100 characters'),
+    .isLength({ max: 100 }).withMessage('Team name cannot exceed 100 characters')
+    .matches(NAME_REGEX).withMessage('Team name contains invalid characters'),
 
   body('department')
+    .optional()
     .trim()
-    .isLength({ max: 100 }).withMessage('Department cannot exceed 100 characters'),
+    .isLength({ max: 100 }).withMessage('Department cannot exceed 100 characters')
+    .matches(NAME_REGEX).withMessage('Department contains invalid characters'),
 
   body('description')
+    .optional()
     .trim()
-    .isLength({ max: 2000 }).withMessage('Description cannot exceed 2000 characters'),
+    .isLength({ max: 2000 }).withMessage('Description cannot exceed 2000 characters')
+    .matches(TEXT_REGEX).withMessage('Description contains invalid characters'),
 
   body('teamleader')
-      .trim()
-      .notEmpty().withMessage('Teamleader email is required')
-      .isEmail().withMessage('Teamleader must be a valid email'),
+    .trim()
+    .notEmpty().withMessage('Teamleader email is required')
+    .matches(EMAIL_REGEX).withMessage('Teamleader must be a valid email'),
 
   body('developers')
     .optional()
-    .isArray().withMessage('Developers must be an array')
-    .custom(devs => {
-      for (const email of devs) {
-        if (!/\S+@\S+\.\S+/.test(email)) {
-          throw new Error(`Invalid email: ${email}`);
-        }
-      }
-      return true;
-    })
+    .isArray({ max: 50 }).withMessage('Developers must be an array'),
+  
+  body('developers.*')
+    .trim()
+    .matches(EMAIL_REGEX).withMessage('Invalid developer email'),
 ];
 
 /**

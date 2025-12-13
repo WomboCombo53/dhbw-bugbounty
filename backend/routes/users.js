@@ -18,24 +18,26 @@ router.use(limiter);
 /**
  * Validation middleware
  */
+const GOOGLE_ID_REGEX = /^[a-zA-Z0-9_-]{1,255}$/;
+const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
 const userValidation = [
   body('googleId')
     .trim()
     .notEmpty().withMessage('googleId is required')
-    .isString().withMessage('googleId must be a string')
-    .isLength({ max: 255 }).withMessage('googleId is too long'),
+    .matches(GOOGLE_ID_REGEX).withMessage('Invalid googleId format'),
 
   body('email')
     .trim()
+    .normalizeEmail()
     .notEmpty().withMessage('Email is required')
-    .isEmail().withMessage('Invalid email address'),
+    .matches(EMAIL_REGEX).withMessage('Invalid email address'),
 
   body('role')
     .optional()
     .isIn(['reporter', 'admin', 'developer'])
-    .withMessage('Invalid role')
+    .withMessage('Invalid role'),
 ];
-
 const userIdParamValidation = [
   param('id')
     .custom(value => mongoose.Types.ObjectId.isValid(value))
