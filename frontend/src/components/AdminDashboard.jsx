@@ -31,7 +31,7 @@ function DroppableTeam({ team, isDragging, setShowTeamBugs, editTeam, deleteTeam
   });
 
   const style = {
-    backgroundColor: isOver ? "#1f7a8c" : undefined,
+    backgroundColor: isOver ? "#275DAD" : undefined,
   };
 
   return (
@@ -47,12 +47,12 @@ function DroppableUnassigned({ isDragging, setShowTeamBugs}) {
   });
 
   const style = {
-    backgroundColor: isOver ? "#1f7a8c" : undefined,
+    backgroundColor: isOver ? "#275DAD" : undefined,
     textAlign: "center",
   };
 
   return (
-    <div ref={setNodeRef} onClick={() => {if (!isDragging) setShowTeamBugs("unassigned");}}>
+    <div ref={setNodeRef} onClick={() => {if (!isDragging) setShowTeamBugs(null);}}>
       <div className="team-card" style={style}>
         <div className="team-header">
           <h3>Unassigned Bugs</h3>
@@ -78,7 +78,7 @@ export default function AdminDashboard() {
   const [developerList, setDeveloperList] = useState([]);
   const [activeBug, setActiveBug] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
-  const [showTeamBugs, setShowTeamBugs] = useState("unassigned");
+  const [showTeamBugs, setShowTeamBugs] = useState(null); // null means show unassigned bugs
   const [editingTeam, setEditingTeam] = useState(null);
 
 
@@ -88,7 +88,7 @@ export default function AdminDashboard() {
     if (!over) return; // dropped outside any droppable
 
     const bugId = active.id; 
-    const teamId = over.id; // could be "unassigned" or a team name
+    const teamId = over.id === "unassigned" ? null: over.id;; // could be null or a team id
 
     try {
       const tokenRes = await fetch(`${API_URL}/api/csrf-token`, {
@@ -98,7 +98,7 @@ export default function AdminDashboard() {
       const { csrfToken } = await tokenRes.json();
 
       const res = await fetch(`${API_URL}/api/bugs/${bugId}/assign-team`, {
-        method: "POST",
+        method: "PATCH",
         headers: {
           "Content-Type": "application/json",
           "x-csrf-token": csrfToken
@@ -386,7 +386,7 @@ export default function AdminDashboard() {
         ): null}
         <div className="headline">
           <h2>
-            {showTeamBugs === "unassigned" ? "Unassigned Bug Reports" : `Bugs assigned to Team: ${teams.find(t => t._id === showTeamBugs)?.teamName || ""}`}
+            {showTeamBugs === null ? "Unassigned Bug Reports" : `Bugs assigned to Team: ${teams.find(t => t._id === showTeamBugs)?.teamName || ""}`}
           </h2>
         </div>
         <div className="headline">
@@ -412,21 +412,26 @@ export default function AdminDashboard() {
         >
           <div className="bug-list">
             {bugs
-            .filter(bug => bug.assignedTeam === showTeamBugs)
+            .filter(bug => {
+              if (showTeamBugs === null) {
+                return bug.assignedTeam === null;
+              }
+              return bug.assignedTeam?._id === showTeamBugs;
+            })
             .map((bug) => (
               <DraggableBug key={bug._id} bug={bug} deleteBug={deleteBug}/>
             ))}
           </div>
 
           <div className="team-list">
-            {showTeamBugs === "unassigned" ? null : (<DroppableUnassigned isDragging={isDragging} setShowTeamBugs={setShowTeamBugs}/>)}
+            {showTeamBugs === null ? null : (<DroppableUnassigned isDragging={isDragging} setShowTeamBugs={setShowTeamBugs}/>)}
             {teams.map((team) => (
               <DroppableTeam key={team._id} team={team} isDragging={isDragging} setShowTeamBugs={setShowTeamBugs} editTeam={editTeam} deleteTeam={deleteTeam}>
               </DroppableTeam>
             ))}
           </div>
           <DragOverlay>
-            {activeBug ? <DraggableBug bug={activeBug}/> : null}
+            {activeBug ? <Bug bug={activeBug} /> : null}
           </DragOverlay>
         </DndContext>
       </div>

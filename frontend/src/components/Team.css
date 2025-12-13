@@ -3,6 +3,7 @@
   border-radius: 8px;
   padding: 20px;
   transition: transform 0.2s, box-shadow 0.2s;
+  background-color: #CED3DC;
 
   user-select: none;
   -webkit-user-select: none; /* Safari */
@@ -50,4 +51,12 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+.team-last-row button{
+  margin: .2rem;
+  padding: .3rem;
+  background-color: #4ca0d9;
+  border-radius: 5px;
+  border: none;
 }

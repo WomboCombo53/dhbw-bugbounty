@@ -6,31 +6,34 @@ import mongoose from 'mongoose';
 
 const router = express.Router();
 
+const TEXT_REGEX = /^[a-zA-Z0-9 äöüÄÖÜß.,:;!?()\-_'"\n\r]+$/;
+const NAME_REGEX = /^[a-zA-Z äöüÄÖÜß\-'.]+$/;
+
 // Validation middleware
 const bugValidation = [
   body('title')
     .trim()
     .notEmpty().withMessage('Title is required')
-    .isLength({ max: 200 }).withMessage('Title cannot exceed 200 characters'),
+    .isLength({ max: 200 }).withMessage('Title cannot exceed 200 characters')
+    .matches(TEXT_REGEX).withMessage('Title contains invalid characters'),
+
   body('description')
     .trim()
     .notEmpty().withMessage('Description is required')
-    .isLength({ max: 5000 }).withMessage('Description cannot exceed 5000 characters'),
+    .isLength({ max: 5000 }).withMessage('Description cannot exceed 5000 characters')
+    .matches(TEXT_REGEX).withMessage('Description contains invalid characters'),
+
   body('severity')
-    .isIn(['low', 'medium', 'high', 'critical']).withMessage('Invalid severity level'),
+    .isIn(['low', 'medium', 'high', 'critical'])
+    .withMessage('Invalid severity level'),
+
   body('companyName')
     .trim()
     .notEmpty().withMessage('Company name is required')
-    .isLength({ max: 100 }).withMessage('Company name cannot exceed 100 characters'),
-  body('reporterEmail')
-    .trim()
-    .notEmpty().withMessage('Email is required')
-    .isEmail().withMessage('Invalid email address')
-    .normalizeEmail(),
-  body('bountyAmount')
-    .optional({ nullable: true, checkFalsy: true })
-    .isFloat({ min: 0 }).withMessage('Bounty amount must be a positive number')
+    .isLength({ max: 100 }).withMessage('Company name cannot exceed 100 characters')
+    .matches(NAME_REGEX).withMessage('Company name contains invalid characters'),
 ];
+
 
 function requireAuth(req, res, next) {
   if (!req.session?.user) {
@@ -133,8 +136,7 @@ router.post('/', requireAuth, bugValidation, async (req, res) => {
       description: req.body.description,
       severity: req.body.severity,
       companyName: req.body.companyName,
-      reporterEmail: req.body.reporterEmail,
-      bountyAmount: req.body.bountyAmount || null,
+      reporterEmail: req.session.user.email, // use email from session
       status: 'open',
       submittedAt: new Date()
     };
@@ -157,33 +159,44 @@ router.post('/', requireAuth, bugValidation, async (req, res) => {
   }
 });
 
-// POST /api/bugs/:bugId/assign-team - Assign bug to a team
-router.post('/:bugId/assign-team', requireRole('admin'), async (req, res) => {
+// PATCH /api/bugs/:bugId/assign-team - Assign bug to a team
+router.patch('/:bugId/assign-team', requireRole('admin'), async (req, res) => {
   const { bugId } = req.params;
-  const { teamId } = req.body;
+  const { teamId } = req.body; // ObjectId oder null
 
-  if (!teamId) {
-    return res.status(400).json({ success: false, message: "teamName is required" });
+  if (!mongoose.Types.ObjectId.isValid(bugId)) {
+    return res.status(400).json({ success: false, message: "Invalid bugId" });
   }
 
-  if (!mongoose.Types.ObjectId.isValid(teamId)) {
-    return res.status(400).json({ success: false, message: "Invalid teamId format" });
+  if (teamId && !mongoose.Types.ObjectId.isValid(teamId)) {
+    return res.status(400).json({ success: false, message: "Invalid teamId" });
   }
 
   try {
     const bug = await Bug.findById(bugId);
-    if (!bug) return res.status(404).json({ success: false, message: "Bug not found" });
+    if (!bug) {
+      return res.status(404).json({ success: false, message: "Bug not found" });
+    }
 
-    const team = await Team.findById(teamId);
-    if (!team) return res.status(404).json({ success: false, message: "Team not found" });
+    if (teamId) {
+      const team = await Team.findById(teamId);
+      if (!team) {
+        return res.status(404).json({ success: false, message: "Team not found" });
+      }
+      bug.assignedTeam = team._id;
+    } else {
+      bug.assignedTeam = null;
+    }
 
-    bug.assignedTeam = team._id;
     await bug.save();
 
-    res.json({ success: true, data: bug });
+    // Populate assignedTeam field before sending response
+    const populatedBug = await bug.populate('assignedTeam');
+
+    res.json({ success: true, data: populatedBug });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ success: false, message: err.message });
+    console.error('Assign team error:', err);
+    res.status(500).json({ success: false, message: 'Internal server error' });
   }
 });
 

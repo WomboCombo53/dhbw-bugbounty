@@ -33,10 +33,15 @@ router.post('/google', async (req, res) => {
     const payload = ticket.getPayload();
 
     //store user in db
-    const options = { upsert: true, new: true, setDefaultsOnInsert: true };
     const user = await User.findOneAndUpdate(
-      {   googleId: { $eq: payload.sub }, email: { $eq: payload.email } },
-      options
+      { googleId: payload.sub },
+      {
+        googleId: payload.sub,
+        email: payload.email,
+        name: payload.name,
+        picture: payload.picture,
+      },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
     );
 
     //create session

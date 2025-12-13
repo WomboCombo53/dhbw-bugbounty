@@ -1,4 +1,11 @@
 .login-container{
+  flex: 1;
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+}
+
+.login-box{
   margin: auto;
   padding: 25px;
   width: 50vw;
@@ -6,12 +13,11 @@
   display: flex;
   flex-direction: column;
   gap: 20px;
-  background: linear-gradient(135deg, #324497 0%, #0004ff 100%);
-  color: white;
+  background: #4ca0d9;
   border: none;
   border-radius: 8px;
 }
 
 a{
-  color: white;
+  color: #FCF7F8;
 }

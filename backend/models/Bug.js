@@ -43,8 +43,9 @@ const bugSchema = new mongoose.Schema({
     default: 'open'
   },
   assignedTeam: {
-    type: String,
-    default: "unassigned"
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Team",
+    default: null
   },
   submittedAt: {
     type: Date,

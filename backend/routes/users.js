@@ -1,6 +1,8 @@
 import express from 'express';
 import User from '../models/User.js';
 import rateLimit from 'express-rate-limit';
+import { body, param, validationResult } from 'express-validator';
+import mongoose from 'mongoose';
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -14,39 +16,128 @@ const router = express.Router();
 router.use(limiter);
 
 /**
+ * Validation middleware
+ */
+const GOOGLE_ID_REGEX = /^[a-zA-Z0-9_-]{1,255}$/;
+const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
+const userValidation = [
+  body('googleId')
+    .trim()
+    .notEmpty().withMessage('googleId is required')
+    .matches(GOOGLE_ID_REGEX).withMessage('Invalid googleId format'),
+
+  body('email')
+    .trim()
+    .normalizeEmail()
+    .notEmpty().withMessage('Email is required')
+    .matches(EMAIL_REGEX).withMessage('Invalid email address'),
+
+  body('role')
+    .optional()
+    .isIn(['reporter', 'admin', 'developer'])
+    .withMessage('Invalid role'),
+];
+const userIdParamValidation = [
+  param('id')
+    .custom(value => mongoose.Types.ObjectId.isValid(value))
+    .withMessage('Invalid user id format')
+];
+
+function requireAuth(req, res, next) {
+  if (!req.session?.user) {
+    return res.status(401).json({ success: false, message: 'Not authenticated' });
+  }
+  next();
+}
+
+function requireRole(...roles) {
+  return (req, res, next) => {
+    if (!req.session?.user) {
+      return res.status(401).json({ success: false, message: 'Not authenticated' });
+    }
+    if (!roles.includes(req.session.user.role)) {
+      return res.status(403).json({ success: false, message: 'Forbidden' });
+    }
+    next();
+  };
+}
+
+/**
  * POST /api/users
  * Body: { googleId, email}
  * Create or update user based on googleId
  */
-router.post('/', async (req, res) => {
+router.post('/', requireAuth, userValidation, async (req, res) => {
   try {
-    const { googleId, email } = req.body;
-
-    if (!googleId || typeof googleId !== "string") {
-      return res.status(400).json({ success: false, message: 'googleId is required and must be a string' });
+    // 🔹 Validation check (wie bugs.js)
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array()
+      });
     }
 
-    const options = { upsert: true, new: true, setDefaultsOnInsert: true };
-    const user = await User.findOneAndUpdate({ googleId: { $eq: googleId }, email: {$eq: email}}, {}, options);
+    const { googleId, email } = req.body;
 
-    return res.json({ success: true, data: user });
+    const options = {
+      upsert: true,
+      new: true,
+      setDefaultsOnInsert: true
+    };
+
+    // only googleId (unique)
+    const user = await User.findOneAndUpdate(
+      { googleId },
+      { email, lastSeen: new Date() },
+      options
+    );
+
+    res.json({ success: true, data: user });
   } catch (err) {
     console.error('Error upserting user:', err);
-    return res.status(500).json({ success: false, message: 'Error saving user', error: err.message });
+    res.status(500).json({
+      success: false,
+      message: 'Error saving user',
+      error: err.message
+    });
   }
 });
 
 /**
- * GET /api/users/:id - get user based on id
+ * GET /api/users/:id
+ * Admin only
  */
-router.get('/:id', async (req, res) => {
+router.get('/:id', requireRole('admin'), userIdParamValidation, async (req, res) => {
   try {
+    // 🔹 Validation check
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array()
+      });
+    }
+
     const user = await User.findById(req.params.id).lean();
-    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
     res.json({ success: true, data: user });
   } catch (err) {
     console.error('Error fetching user:', err);
-    res.status(500).json({ success: false, message: 'Error fetching user', error: err.message });
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching user',
+      error: err.message
+    });
   }
 });
 
