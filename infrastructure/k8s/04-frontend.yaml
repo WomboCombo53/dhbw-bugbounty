@@ -8,7 +8,7 @@ data:
     server {
         listen 8080;
         server_name localhost;
-        return 301 https://$host$request_uri;
+        return 301 https://$host$request_uri:8443;
     }
 
     server {
@@ -16,6 +16,9 @@ data:
         server_name localhost;
         root /usr/share/nginx/html;
         index index.html;
+
+        # Redirect HTTP requests to HTTPS on the same port
+        error_page 497 https://$host:$server_port$request_uri;
 
         ssl_certificate /etc/nginx/ssl/tls.crt;
         ssl_certificate_key /etc/nginx/ssl/tls.key;
