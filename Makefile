@@ -30,7 +30,7 @@ deploy-build:
 # Open the frontend and backend
 open:
 	@echo "🛑 Killing existing port-forwards..."
-	@pkill -f "kubectl port-forward" || true
+	@pkill kubectl || true
 	
 	@echo "⏳ Waiting for pods to be ready..."
 

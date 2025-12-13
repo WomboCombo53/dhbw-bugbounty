@@ -81,7 +81,8 @@ apt_install_base_tools() {
 		iproute2 \
 		net-tools \
 		openssl \
-		acl
+		acl \
+		procps
 }
 
 install_docker_if_missing() {
