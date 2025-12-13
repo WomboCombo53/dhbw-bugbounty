@@ -26,7 +26,8 @@ h2, h3{
   aspect-ratio: 1/1;
   width: auto;
   border-radius: 5px;
-  border-width: 0;
+  border: none;
+  background-color: #4ca0d9;
 }
 
 .modal-backdrop{
