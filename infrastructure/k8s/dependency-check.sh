@@ -153,12 +153,12 @@ install_minikube_if_missing() {
 	esac
 
 	log "Installing minikube (latest) for linux/${arch}..."
-	local tmp
-	tmp="$(mktemp -d)"
-	trap 'rm -rf "$tmp"' EXIT
-	curl -fsSL -o "$tmp/minikube" "https://storage.googleapis.com/minikube/releases/latest/minikube-linux-${arch}"
-	chmod +x "$tmp/minikube"
-	sudo mv "$tmp/minikube" /usr/local/bin/minikube
+	local tmp_dir
+	tmp_dir="$(mktemp -d)"
+	trap 'rm -rf "$tmp_dir"' RETURN
+	curl -fsSL -o "$tmp_dir/minikube" "https://storage.googleapis.com/minikube/releases/latest/minikube-linux-${arch}"
+	chmod +x "$tmp_dir/minikube"
+	sudo mv "$tmp_dir/minikube" /usr/local/bin/minikube
 }
 
 configure_minikube_defaults() {
