@@ -15,21 +15,13 @@ const bugValidation = [
   body('description')
     .trim()
     .notEmpty().withMessage('Description is required')
-    .isLength({ max: 5000 }).withMessage('Description cannot exceed 5000 characters'),
+    .isLength({ max: 999 }).withMessage('Description cannot exceed 5000 characters'),
   body('severity')
     .isIn(['low', 'medium', 'high', 'critical']).withMessage('Invalid severity level'),
   body('companyName')
     .trim()
     .notEmpty().withMessage('Company name is required')
     .isLength({ max: 100 }).withMessage('Company name cannot exceed 100 characters'),
-  body('reporterEmail')
-    .trim()
-    .notEmpty().withMessage('Email is required')
-    .isEmail().withMessage('Invalid email address')
-    .normalizeEmail(),
-  body('bountyAmount')
-    .optional({ nullable: true, checkFalsy: true })
-    .isFloat({ min: 0 }).withMessage('Bounty amount must be a positive number')
 ];
 
 function requireAuth(req, res, next) {
@@ -133,8 +125,7 @@ router.post('/', requireAuth, bugValidation, async (req, res) => {
       description: req.body.description,
       severity: req.body.severity,
       companyName: req.body.companyName,
-      reporterEmail: req.body.reporterEmail,
-      bountyAmount: req.body.bountyAmount || null,
+      reporterEmail: req.session.user.email, // use email from session
       status: 'open',
       submittedAt: new Date()
     };
