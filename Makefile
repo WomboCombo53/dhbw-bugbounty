@@ -3,7 +3,9 @@
 # Default target
 all: start deploy open
 up: all
+
 build: start deploy-build open
+cleanbuild: clean build
 
 # Start Minikube if not running
 start:
