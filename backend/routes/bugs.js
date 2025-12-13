@@ -148,33 +148,44 @@ router.post('/', requireAuth, bugValidation, async (req, res) => {
   }
 });
 
-// POST /api/bugs/:bugId/assign-team - Assign bug to a team
-router.post('/:bugId/assign-team', requireRole('admin'), async (req, res) => {
+// PATCH /api/bugs/:bugId/assign-team - Assign bug to a team
+router.patch('/:bugId/assign-team', requireRole('admin'), async (req, res) => {
   const { bugId } = req.params;
-  const { teamId } = req.body;
+  const { teamId } = req.body; // ObjectId oder null
 
-  if (!teamId) {
-    return res.status(400).json({ success: false, message: "teamName is required" });
+  if (!mongoose.Types.ObjectId.isValid(bugId)) {
+    return res.status(400).json({ success: false, message: "Invalid bugId" });
   }
 
-  if (!mongoose.Types.ObjectId.isValid(teamId)) {
-    return res.status(400).json({ success: false, message: "Invalid teamId format" });
+  if (teamId && !mongoose.Types.ObjectId.isValid(teamId)) {
+    return res.status(400).json({ success: false, message: "Invalid teamId" });
   }
 
   try {
     const bug = await Bug.findById(bugId);
-    if (!bug) return res.status(404).json({ success: false, message: "Bug not found" });
+    if (!bug) {
+      return res.status(404).json({ success: false, message: "Bug not found" });
+    }
 
-    const team = await Team.findById(teamId);
-    if (!team) return res.status(404).json({ success: false, message: "Team not found" });
+    if (teamId) {
+      const team = await Team.findById(teamId);
+      if (!team) {
+        return res.status(404).json({ success: false, message: "Team not found" });
+      }
+      bug.assignedTeam = team._id;
+    } else {
+      bug.assignedTeam = null;
+    }
 
-    bug.assignedTeam = team._id;
     await bug.save();
 
-    res.json({ success: true, data: bug });
+    // Populate assignedTeam field before sending response
+    const populatedBug = await bug.populate('assignedTeam');
+
+    res.json({ success: true, data: populatedBug });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ success: false, message: err.message });
+    console.error('Assign team error:', err);
+    res.status(500).json({ success: false, message: 'Internal server error' });
   }
 });
 
