@@ -1,6 +1,9 @@
 # Backend Dockerfile
 FROM node:24-alpine
 
+# Fix glob vulnerability in global npm (CVE-2025-64756)
+RUN npm install -g npm@latest
+
 # Create app directory
 WORKDIR /app
 
@@ -9,9 +12,6 @@ COPY package*.json ./
 
 # Install dependencies
 RUN npm ci --only=production
-
-# Fix glob vulnerability in global npm (CVE-2025-64756)
-RUN npm install -g npm@latest
 
 # Copy application files
 COPY . .
