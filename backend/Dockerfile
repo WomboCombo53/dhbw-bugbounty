@@ -10,6 +10,9 @@ COPY package*.json ./
 # Install dependencies
 RUN npm ci --only=production
 
+# Fix glob vulnerability CVE-2025-64756
+RUN npm install glob@latest
+
 # Copy application files
 COPY . .
 
