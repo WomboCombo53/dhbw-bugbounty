@@ -7,7 +7,7 @@ import mongoose from 'mongoose';
 const router = express.Router();
 
 const TEXT_REGEX = /^[a-zA-Z0-9 äöüÄÖÜß.,:;!?()\-_'"\n\r]+$/;
-const NAME_REGEX = /^[a-zA-Z äöüÄÖÜß\-'.]+$/;
+const NAME_REGEX = /^[a-zA-Z0-9 äöüÄÖÜß\-'.]+$/;
 
 // Validation middleware
 const bugValidation = [
@@ -27,11 +27,11 @@ const bugValidation = [
     .isIn(['low', 'medium', 'high', 'critical'])
     .withMessage('Invalid severity level'),
 
-  body('companyName')
+  body('productName')
     .trim()
-    .notEmpty().withMessage('Company name is required')
-    .isLength({ max: 100 }).withMessage('Company name cannot exceed 100 characters')
-    .matches(NAME_REGEX).withMessage('Company name contains invalid characters'),
+    .notEmpty().withMessage('Product name is required')
+    .isLength({ max: 100 }).withMessage('Product name cannot exceed 100 characters')
+    .matches(NAME_REGEX).withMessage('Product name contains invalid characters'),
 ];
 
 
@@ -57,13 +57,13 @@ function requireRole(...roles) {
 // GET /api/bugs - Get all bugs
 router.get('/', requireAuth, async (req, res) => {
   try {
-    const { severity, status, companyName, limit = 50, skip = 0 } = req.query;
+    const { severity, status, productName, limit = 50, skip = 0 } = req.query;
     
     // Build query filter
     const filter = {};
     if (severity) filter.severity = severity;
     if (status) filter.status = status;
-    if (companyName) filter.companyName = new RegExp(companyName, 'i');
+    if (productName) filter.productName = new RegExp(productName, 'i');
     
     const bugs = await Bug.find(filter)
       .sort({ submittedAt: -1 })
@@ -135,7 +135,7 @@ router.post('/', requireAuth, bugValidation, async (req, res) => {
       title: req.body.title,
       description: req.body.description,
       severity: req.body.severity,
-      companyName: req.body.companyName,
+      productName: req.body.productName,
       reporterEmail: req.session.user.email, // use email from session
       status: 'open',
       submittedAt: new Date()

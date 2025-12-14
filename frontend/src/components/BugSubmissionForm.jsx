@@ -6,7 +6,7 @@ function BugSubmissionForm({ onSubmit }) {
     title: '',
     description: '',
     severity: 'medium',
-    companyName: '',
+    productName: '',
     reporterEmail: '',
     bountyAmount: ''
   })
@@ -27,7 +27,7 @@ function BugSubmissionForm({ onSubmit }) {
       title: '',
       description: '',
       severity: 'medium',
-      companyName: '',
+      productName: '',
       reporterEmail: '',
       bountyAmount: ''
     })
@@ -78,12 +78,12 @@ function BugSubmissionForm({ onSubmit }) {
       </div>
 
       <div className="form-group">
-        <label htmlFor="companyName">Company Name *</label>
+        <label htmlFor="productName">Company Name *</label>
         <input
           type="text"
-          id="companyName"
-          name="companyName"
-          value={formData.companyName}
+          id="productName"
+          name="productName"
+          value={formData.productName}
           onChange={handleChange}
           required
           placeholder="Target company name"
