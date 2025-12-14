@@ -24,7 +24,7 @@ Nach erfolgreichem Start ist die Anwendung unter folgenden URLs erreichbar:
 - Frontend: https://localhost:8443
 - Backend API: https://localhost:3000
 
-Ggf. muss das generierte TLS-Zertifikat/die generierte Root-CA vom Nutzer als vertrauenswürdig eingestuft werden, damit die Seite erreichbar ist.
+Ggf. muss das generierte TLS-Zertifikat/die generierte Root-CA vom Nutzer als vertrauenswürdig eingestuft werden/im Browser installiert werden, damit die Seite erreichbar ist.
 
 ### Troubleshooting
 
