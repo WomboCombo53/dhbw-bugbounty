@@ -3,6 +3,7 @@ import { body, validationResult } from 'express-validator';
 import Bug from '../models/Bug.js';
 import Team from '../models/Team.js';
 import mongoose from 'mongoose';
+import _ from 'lodash';
 
 const router = express.Router();
 
@@ -63,15 +64,15 @@ router.get('/', requireAuth, async (req, res) => {
     const filter = {};
     if (severity) filter.severity = severity;
     if (status) filter.status = status;
-    if (productName) filter.productName = new RegExp(productName, 'i');
+    if (productName) filter.productName = new RegExp(_.escape(productName), 'i');
     
-    const bugs = await Bug.find(filter)
+    const bugs = await Bug.find(_.escape(filter))
       .sort({ submittedAt: -1 })
       .limit(parseInt(limit))
       .skip(parseInt(skip))
       .lean();
     
-    const total = await Bug.countDocuments(filter);
+    const total = await Bug.countDocuments(_.escape(filter));
     
     res.json({
       success: true,

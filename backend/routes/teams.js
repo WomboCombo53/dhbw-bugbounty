@@ -4,6 +4,7 @@ import User from '../models/User.js';
 import rateLimit from 'express-rate-limit';
 import { body, validationResult } from 'express-validator';
 import mongoose from 'mongoose';
+import _ from 'lodash';
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -256,7 +257,7 @@ router.patch('/:id', requireRole('admin'), teamUpdateValidation, async (req, res
       return res.status(404).json({ success: false, message: 'Team not found' });
     }
 
-    const updatedTeam = await Team.findByIdAndUpdate(id, updateData, { new: true });
+    const updatedTeam = await Team.findByIdAndUpdate(id, _.escape(updateData), { new: true });
 
     // Recalculate roles of removed developers
     const oldEmails = new Set([
