@@ -1,0 +1,2 @@
+Die Logs und Artefakte der Pipeline-Runs über GitHub Action lassen sich leider nicht gesammelt über GitHub herunterladen, daher sind diese nur über das Repository verfügbar:
+https://github.com/WomboCombo53/dhbw-bugbounty/actions
