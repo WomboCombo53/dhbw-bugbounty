@@ -62,9 +62,15 @@ router.get('/', requireAuth, async (req, res) => {
     
     // Build query filter
     const filter = {};
-    if (severity) filter.severity = severity;
-    if (status) filter.status = status;
-    if (productName) filter.productName = new RegExp(_.escapeRegExp(productName), 'i');
+    const allowedSeverities = ['low', 'medium', 'high', 'critical'];
+    const allowedStatuses = ['open', 'in progress', 'resolved', 'closed'];
+    if (typeof severity === 'string' && allowedSeverities.includes(severity)) {
+      filter.severity = severity;
+    }
+    if (typeof status === 'string' && allowedStatuses.includes(status)) {
+      filter.status = status;
+    }
+    if (typeof productName === 'string' && productName.length > 0) filter.productName = new RegExp(_.escapeRegExp(productName), 'i');
     
     const bugs = await Bug.find(filter)
       .sort({ submittedAt: -1 })
