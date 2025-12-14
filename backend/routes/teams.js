@@ -1,5 +1,6 @@
 import express from 'express';
 import Team from '../models/Team.js';
+import User from '../models/User.js';
 import rateLimit from 'express-rate-limit';
 import User from '../models/User.js';
 import { body, validationResult } from 'express-validator';
@@ -31,7 +32,6 @@ function requireRole(...roles) {
         return res.status(403).json({ success: false, message: 'Forbidden' });
       }
 
-      // optional: Rolle im Request verfügbar machen
       req.userRole = dbUser.role;
 
       next();

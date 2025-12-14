@@ -11,6 +11,7 @@ const API_URL = import.meta.env.VITE_API_URL || "";
 function App() {
   const [user, setUser] = useState(null);
   const [checkingSession, setCheckingSession] = useState(true);
+  const [activePanel, setActivePanel] = useState(null);
 
   //check session on load 
   useEffect(() => {
@@ -21,6 +22,7 @@ function App() {
       .then(sessionUser => {
         if (sessionUser.loggedIn){
           setUser(sessionUser.user);
+          setActivePanel(sessionUser.user.role);
         }else{
           setUser(null);
         }
@@ -31,6 +33,7 @@ function App() {
 
   function handleLogin(googleUser) {
     setUser(googleUser);
+    setActivePanel(googleUser.role);
   }
 
   async function handleLogout() {
@@ -59,6 +62,26 @@ function App() {
   return (
     <div className="App">
       <header className="App-header">
+        {user && (
+          <div className="panel-buttons">
+            {user.role !== "reporter" && (
+              <button onClick={() => setActivePanel("reporter")}>
+                Reporter-Panel
+              </button>
+            )}
+            {user.role !== "reporter" && (
+              <button onClick={() => setActivePanel("developer")}>
+                Developer-Panel
+              </button>
+            )}
+            {user.role === "admin" && (
+              <button onClick={() => setActivePanel("admin")}>
+                Admin-Panel
+              </button>
+            )}
+          </div>
+        )}
+
         <h1>Bug Bounty Tracker</h1>
         {user ? (
           <div className="user-profile">
@@ -86,25 +109,18 @@ function App() {
           <Login onLogin={handleLogin} />
       ) : (
         <main className="App-main">
-          <>
-            {user && (
-              <>
-                {user.role === "admin" && (
-                  <AdminDashboard/>
-                )}
+          {activePanel === "admin" && user.role === "admin" && (
+            <AdminDashboard />
+          )}
 
-                {user.role === "developer" && (
-                  <div>
-                    <DeveloperDashboard/>
-                  </div>
-                )}
+          {activePanel === "developer" &&
+            (user.role === "developer" || user.role === "admin") && (
+              <DeveloperDashboard />
+          )}
 
-                {user.role === "reporter" && (
-                  <ReporterDashboard/>
-                )}
-              </>
-            )}
-          </>
+          {activePanel === "reporter" && (
+            <ReporterDashboard />
+          )}
         </main>
       )}
       <section className="footer">

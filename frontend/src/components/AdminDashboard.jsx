@@ -81,7 +81,6 @@ export default function AdminDashboard() {
   const [showTeamBugs, setShowTeamBugs] = useState(null); // null means show unassigned bugs
   const [editingTeam, setEditingTeam] = useState(null);
 
-
   // Handle drag end event
   const handleDragEnd = async (event) => {
     const { over, active } = event;
@@ -127,14 +126,10 @@ export default function AdminDashboard() {
       });
       const result = await response.json();
 
-      if (result.success) {
+      if (result.success)
           setBugs(result.data);
-      } else {
-          setError("Failed to fetch bug reports");
-      }
       } catch (err) {
       console.error("Error fetching bugs:", err);
-      setError("Unable to connect to the server");
       } finally {
       }
   };
@@ -166,7 +161,7 @@ export default function AdminDashboard() {
   // Add developer to the list (modal)
   const addDeveloper = () => {
     if (!newDeveloperEmail.trim()) return;
-
+    if (developerList.includes(newDeveloperEmail)) return;
     setDeveloperList(prev => [...prev, newDeveloperEmail]);
     setNewDeveloperEmail("");
   };
@@ -339,7 +334,7 @@ export default function AdminDashboard() {
         {showCreateTeamModal ? (
           <div className="modal-backdrop">
               <div className="modal">
-                  <h3>Create New Team</h3>
+                  <h3>{editingTeam ? "Edit Team" : "Create New Team"}</h3>
                   <input placeholder="Teamname" value={teamName} onChange={e => setTeamName(e.target.value)} />
                   <input placeholder="Department" value={department} onChange={e => setDepartment(e.target.value)} />
                   <input placeholder="Description" value={description} onChange={e => setDescription(e.target.value)} />

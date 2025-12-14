@@ -24,6 +24,19 @@
   text-shadow: 2px 2px 4px rgba(110, 110, 110, 0.3);
 }
 
+.panel-buttons {
+  display: flex;
+  gap: 0.5rem;
+  justify-self: start;
+}
+
+.panel-buttons button {
+  background-color: #4ca0d9;
+  border-radius: 10px;
+  border: none;
+  padding: 0.4rem 0.8rem;
+}
+
 .App-header > :last-child {
   grid-column: 3;
   justify-self: end;
