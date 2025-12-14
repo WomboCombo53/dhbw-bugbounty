@@ -230,7 +230,7 @@ router.patch('/:id', requireRole('admin', 'developer'), async (req, res) => {
     const statusToUpdate = status;
     const bug = await Bug.findByIdAndUpdate(
       req.params.id,
-      { status: statusToUpdate },
+      { status: { $eq: statusToUpdate } },
       { new: true, runValidators: true }
     );
     
