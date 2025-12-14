@@ -186,7 +186,7 @@ router.patch('/:bugId/assign-team', requireRole('admin'), async (req, res) => {
     }
 
     if (teamId) {
-      const team = await Team.findById(teamId);
+      const team = await Team.findOne({ _id: { $eq: teamId } });
       if (!team) {
         return res.status(404).json({ success: false, message: "Team not found" });
       }
