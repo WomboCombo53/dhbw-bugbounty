@@ -64,7 +64,7 @@ router.get('/', requireAuth, async (req, res) => {
     const filter = {};
     if (severity) filter.severity = severity;
     if (status) filter.status = status;
-    if (productName) filter.productName = new RegExp(productName, 'i');
+    if (productName) filter.productName = new RegExp(_.escapeRegExp(productName), 'i');
     
     const bugs = await Bug.find(filter)
       .sort({ submittedAt: -1 })
