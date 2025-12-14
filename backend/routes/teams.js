@@ -20,13 +20,16 @@ router.use(limiter);
 function requireRole(...roles) {
   return async (req, res, next) => {
     try {
+      // Check authentication
       if (!req.session?.user) {
         return res.status(401).json({ success: false, message: 'Not authenticated' });
       }
 
+      // Fetch user role from database
       const dbUser = await User.findById(req.session.user.id)
         .select('role');
 
+      // Check if user has one of the required roles
       if (!dbUser || !roles.includes(dbUser.role)) {
         return res.status(403).json({ success: false, message: 'Forbidden' });
       }

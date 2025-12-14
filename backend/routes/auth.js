@@ -38,7 +38,7 @@ router.post('/google', async (req, res) => {
     
     //create session
     req.session.user = {
-      id: user.googleId,
+      id: user._id,
       name: user.name,
       email: user.email,
       picture: payload.picture || "https://www.gravatar.com/avatar/?d=mp", //load default avatar if none provided by google
