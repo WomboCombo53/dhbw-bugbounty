@@ -1,10 +1,10 @@
 import express from 'express';
 import Team from '../models/Team.js';
-import rateLimit from 'express-rate-limit';
 import User from '../models/User.js';
+import rateLimit from 'express-rate-limit';
 import { body, validationResult } from 'express-validator';
 import mongoose from 'mongoose';
-import lodash from "lodash";
+import _ from 'lodash';
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -19,14 +19,29 @@ router.use(limiter);
 
 
 function requireRole(...roles) {
-  return (req, res, next) => {
-    if (!req.session?.user) {
-      return res.status(401).json({ success: false, message: 'Not authenticated' });
+  return async (req, res, next) => {
+    try {
+      // Check authentication
+      if (!req.session?.user) {
+        return res.status(401).json({ success: false, message: 'Not authenticated' });
+      }
+
+      // Fetch user role from database
+      const dbUser = await User.findById(req.session.user.id)
+        .select('role');
+
+      // Check if user has one of the required roles
+      if (!dbUser || !roles.includes(dbUser.role)) {
+        return res.status(403).json({ success: false, message: 'Forbidden' });
+      }
+
+      req.userRole = dbUser.role;
+
+      next();
+    } catch (err) {
+      console.error('Role check failed:', err);
+      res.status(500).json({ success: false, message: 'Authorization failed' });
     }
-    if (!roles.includes(req.session.user.role)) {
-      return res.status(403).json({ success: false, message: 'Forbidden' });
-    }
-    next();
   };
 }
 
@@ -39,11 +54,29 @@ const checkEmailsExist = async (emails) => {
   }
 };
 
+async function recalcDeveloperRoles(emails) {
+  for (const email of emails) {
+    const isStillInTeam = await Team.exists({
+      $or: [
+        { teamleader: email },
+        { developers: email }
+      ]
+    });
+
+    if (!isStillInTeam) {
+      await User.updateOne(
+        { email, role: 'developer' },
+        { $set: { role: 'reporter' } }
+      );
+    }
+  }
+}
+
 const NAME_REGEX = /^[a-zA-Z0-9 äöüÄÖÜß\-_.()]{1,100}$/;
 const TEXT_REGEX = /^[a-zA-Z0-9 äöüÄÖÜß.,:;!?()\-_'"\n\r]{1,2000}$/;
 const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
-const teamValidation = [
+const teamCreateValidation = [
   body('teamName')
     .trim()
     .notEmpty().withMessage('Team name is required')
@@ -76,11 +109,46 @@ const teamValidation = [
     .matches(EMAIL_REGEX).withMessage('Invalid developer email'),
 ];
 
+const teamUpdateValidation = [
+  body('teamName')
+    .optional()
+    .trim()
+    .isLength({ max: 100 }).withMessage('Team name cannot exceed 100 characters')
+    .matches(NAME_REGEX).withMessage('Team name contains invalid characters'),
+
+  body('department')
+    .optional()
+    .trim()
+    .isLength({ max: 100 }).withMessage('Department cannot exceed 100 characters')
+    .matches(NAME_REGEX).withMessage('Department contains invalid characters'),
+
+  body('description')
+    .optional()
+    .trim()
+    .isLength({ max: 2000 }).withMessage('Description cannot exceed 2000 characters')
+    .matches(TEXT_REGEX).withMessage('Description contains invalid characters'),
+
+  body('teamleader')
+    .optional()
+    .trim()
+    .matches(EMAIL_REGEX).withMessage('Teamleader must be a valid email'),
+
+  body('developers')
+    .optional()
+    .isArray({ max: 50 }).withMessage('Developers must be an array'),
+
+  body('developers.*')
+    .optional()
+    .trim()
+    .matches(EMAIL_REGEX).withMessage('Invalid developer email'),
+];
+
+
 /**
  * POST /api/teams
  * Body: { teamName, department, description, teamleader, developers?} - create new Team
  */
-router.post('/', requireRole('admin'), teamValidation, async (req, res) => {
+router.post('/', requireRole('admin'), teamCreateValidation, async (req, res) => {
   try {
     // Check for validation errors
     const errors = validationResult(req);
@@ -116,6 +184,13 @@ router.post('/', requireRole('admin'), teamValidation, async (req, res) => {
 
     await newTeam.save();
 
+    //change role of reporters to developer if they are assigned to a team
+    const emailsToUpdate = [teamleader, ...(developers || [])];
+    await User.updateMany(
+      { email: { $in: emailsToUpdate }, role: 'reporter' },
+      { $set: { role: 'developer' } }
+    );
+
     return res.status(201).json({ success: true, data: newTeam });
 
   } catch (err) {
@@ -131,7 +206,7 @@ router.post('/', requireRole('admin'), teamValidation, async (req, res) => {
 /**
  * PATCH /api/teams/:id - update Team based on id
  */
-router.patch('/:id', requireRole('admin'), teamValidation, async (req, res) => {
+router.patch('/:id', requireRole('admin'), teamUpdateValidation, async (req, res) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -158,7 +233,7 @@ router.patch('/:id', requireRole('admin'), teamValidation, async (req, res) => {
     // Check duplicate teamName if updated
     if (teamName) {
       const existing = await Team.findOne({
-        teamName: _.escape(teamName),
+        teamName: teamName,
         _id: { $ne: id },
       });
       if (existing) {
@@ -177,17 +252,39 @@ router.patch('/:id', requireRole('admin'), teamValidation, async (req, res) => {
     if (teamleader !== undefined) updateData.teamleader = teamleader;
     if (developers !== undefined) updateData.developers = developers;
 
-    const updatedTeam = await Team.findByIdAndUpdate(
-      id,
-      updateData,
-      { new: true }
-    );
-
-    if (!updatedTeam) {
-      return res.status(404).json({ success: false, message: "Team not found" });
+    const oldTeam = await Team.findById(id);
+    if (!oldTeam) {
+      return res.status(404).json({ success: false, message: 'Team not found' });
     }
 
-    return res.json({ success: true, data: updatedTeam });
+    const updatedTeam = await Team.findByIdAndUpdate(id, _.escape(updateData), { new: true });
+
+    // Recalculate roles of removed developers
+    const oldEmails = new Set([
+      oldTeam.teamleader,
+      ...(oldTeam.developers || [])
+    ]);
+
+    const newEmails = new Set([
+      updatedTeam.teamleader,
+      ...(updatedTeam.developers || [])
+    ]);
+
+    const removedEmails = [...oldEmails].filter(e => !newEmails.has(e));
+    const addedEmails = [...newEmails].filter(e => !oldEmails.has(e));
+
+    // downgrade roles of removed developers if they are no longer in any team
+    await recalcDeveloperRoles(removedEmails);
+
+    // added → upgrade
+    await User.updateMany(
+      { email: { $in: addedEmails }, role: 'reporter' },
+      { $set: { role: 'developer' } }
+);
+    return res.json({
+      success: true,
+      data: updatedTeam
+    });
 
   } catch (err) {
     console.error('Error updating team:', err);
@@ -265,19 +362,23 @@ router.delete('/:id', requireRole('admin') , async (req, res) => {
       return res.status(400).json({ success: false, message: 'Invalid ID format' });
     }
 
-    const deletedTeam = await Team.findByIdAndDelete(id);
-    if (!deletedTeam) {
-      return res.status(404).json({
-        success: false,
-        message: 'Team not found'
-      });
+    const team = await Team.findById(id);
+    if (!team) {
+      return res.status(404).json({ success: false, message: 'Team not found' });
     }
+
+    const affectedEmails = [
+      team.teamleader,
+      ...(team.developers || [])
+    ];
+
+    await team.deleteOne();
+    await recalcDeveloperRoles(affectedEmails);
 
     return res.json({
       success: true,
-      data: deletedTeam
+      data: team
     });
-
   } catch (err) {
     return res.status(500).json({
       success: false,

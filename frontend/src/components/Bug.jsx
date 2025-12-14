@@ -18,7 +18,7 @@ function Bug({ bug, onDelete, onDeletePointerDown }) {
 
       <div className="bug-details">
         <p>
-          <strong>Company:</strong> {bug.companyName}
+          <strong>Affected Productname:</strong> {bug.productName}
         </p>
         <p>
           <strong>Description:</strong> {bug.description}

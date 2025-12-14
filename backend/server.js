@@ -12,6 +12,7 @@ import connectDB from './config/db.js';
 import bugRoutes from './routes/bugs.js';
 import authRoutes from './routes/auth.js';
 import teamRoutes from './routes/teams.js';
+import usersRoutes from './routes/users.js';
 
 // Load environment variables
 dotenv.config();
@@ -100,6 +101,7 @@ app.use('/api/bugs', postLimiter);
 app.use('/api/auth', authRoutes);
 app.use('/api/bugs', bugRoutes);
 app.use('/api/teams', teamRoutes);
+app.use('/api/users', usersRoutes);
 
 // 404 handler
 app.use((req, res) => {

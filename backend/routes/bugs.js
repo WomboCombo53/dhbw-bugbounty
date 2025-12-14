@@ -3,11 +3,12 @@ import { body, validationResult } from 'express-validator';
 import Bug from '../models/Bug.js';
 import Team from '../models/Team.js';
 import mongoose from 'mongoose';
+import _ from 'lodash';
 
 const router = express.Router();
 
 const TEXT_REGEX = /^[a-zA-Z0-9 äöüÄÖÜß.,:;!?()\-_'"\n\r]+$/;
-const NAME_REGEX = /^[a-zA-Z äöüÄÖÜß\-'.]+$/;
+const NAME_REGEX = /^[a-zA-Z0-9 äöüÄÖÜß\-'.]+$/;
 
 // Validation middleware
 const bugValidation = [
@@ -27,11 +28,11 @@ const bugValidation = [
     .isIn(['low', 'medium', 'high', 'critical'])
     .withMessage('Invalid severity level'),
 
-  body('companyName')
+  body('productName')
     .trim()
-    .notEmpty().withMessage('Company name is required')
-    .isLength({ max: 100 }).withMessage('Company name cannot exceed 100 characters')
-    .matches(NAME_REGEX).withMessage('Company name contains invalid characters'),
+    .notEmpty().withMessage('Product name is required')
+    .isLength({ max: 100 }).withMessage('Product name cannot exceed 100 characters')
+    .matches(NAME_REGEX).withMessage('Product name contains invalid characters'),
 ];
 
 
@@ -57,21 +58,21 @@ function requireRole(...roles) {
 // GET /api/bugs - Get all bugs
 router.get('/', requireAuth, async (req, res) => {
   try {
-    const { severity, status, companyName, limit = 50, skip = 0 } = req.query;
+    const { severity, status, productName, limit = 50, skip = 0 } = req.query;
     
     // Build query filter
     const filter = {};
     if (severity) filter.severity = severity;
     if (status) filter.status = status;
-    if (companyName) filter.companyName = new RegExp(companyName, 'i');
+    if (productName) filter.productName = new RegExp(_.escape(productName), 'i');
     
-    const bugs = await Bug.find(filter)
+    const bugs = await Bug.find(_.escape(filter))
       .sort({ submittedAt: -1 })
       .limit(parseInt(limit))
       .skip(parseInt(skip))
       .lean();
     
-    const total = await Bug.countDocuments(filter);
+    const total = await Bug.countDocuments(_.escape(filter));
     
     res.json({
       success: true,
@@ -135,7 +136,7 @@ router.post('/', requireAuth, bugValidation, async (req, res) => {
       title: req.body.title,
       description: req.body.description,
       severity: req.body.severity,
-      companyName: req.body.companyName,
+      productName: req.body.productName,
       reporterEmail: req.session.user.email, // use email from session
       status: 'open',
       submittedAt: new Date()

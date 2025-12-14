@@ -19,7 +19,7 @@ const bugSchema = new mongoose.Schema({
     enum: ['low', 'medium', 'high', 'critical'],
     default: 'medium'
   },
-  companyName: {
+  productName: {
     type: String,
     required: [true, 'Company name is required'],
     trim: true,
@@ -58,7 +58,7 @@ const bugSchema = new mongoose.Schema({
 // Index for faster queries
 bugSchema.index({ severity: 1, submittedAt: -1 });
 bugSchema.index({ status: 1 });
-bugSchema.index({ companyName: 1 });
+bugSchema.index({ productName: 1 });
 
 const Bug = mongoose.model('Bug', bugSchema);
 
