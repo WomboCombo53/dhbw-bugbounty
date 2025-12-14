@@ -3,6 +3,8 @@ FROM node:24-alpine
 
 # Fix glob vulnerability in global npm (CVE-2025-64756)
 RUN npm install -g npm@latest
+# Fix validator vulnerability
+RUN npm install -g validator@latest
 
 # Create app directory
 WORKDIR /app
