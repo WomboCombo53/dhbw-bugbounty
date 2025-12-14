@@ -1,6 +1,6 @@
 import express from 'express';
 import { OAuth2Client } from "google-auth-library";
-import User from '../models/User.js';
+import { upsertUserFromGoogle } from './users.js';
 
 const router = express.Router();
 
@@ -32,24 +32,16 @@ router.post('/google', async (req, res) => {
 
     const payload = ticket.getPayload();
 
-    //store user in db
-    const user = await User.findOneAndUpdate(
-      { googleId: payload.sub },
-      {
-        googleId: payload.sub,
-        email: payload.email,
-        name: payload.name,
-        picture: payload.picture,
-      },
-      { upsert: true, new: true, setDefaultsOnInsert: true }
-    );
-
+    //upsert user in db
+    const user = await upsertUserFromGoogle(payload);
+    console.log('User upserted:', user);
+    
     //create session
     req.session.user = {
-      id: payload.sub,
-      name: payload.name,
-      email: payload.email,
-      picture: payload.picture || "https://www.gravatar.com/avatar/?d=mp",
+      id: user.googleId,
+      name: user.name,
+      email: user.email,
+      picture: payload.picture || "https://www.gravatar.com/avatar/?d=mp", //load default avatar if none provided by google
       role: user.role,
     };
 

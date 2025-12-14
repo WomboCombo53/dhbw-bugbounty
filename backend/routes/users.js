@@ -20,6 +20,7 @@ router.use(limiter);
  */
 const GOOGLE_ID_REGEX = /^[a-zA-Z0-9_-]{1,255}$/;
 const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+const NAME_REGEX = /^[a-zA-Z0-9 äöüÄÖÜß\-_.()]{1,100}$/;
 
 const userValidation = [
   body('googleId')
@@ -32,6 +33,11 @@ const userValidation = [
     .normalizeEmail()
     .notEmpty().withMessage('Email is required')
     .matches(EMAIL_REGEX).withMessage('Invalid email address'),
+    
+  body('name')
+    .trim()
+    .notEmpty().withMessage('Name is required')
+    .matches(NAME_REGEX).withMessage('Invalid name format'),
 
   body('role')
     .optional()
@@ -52,67 +58,50 @@ function requireAuth(req, res, next) {
 }
 
 function requireRole(...roles) {
-  return (req, res, next) => {
+  return async (req, res, next) => {
     if (!req.session?.user) {
       return res.status(401).json({ success: false, message: 'Not authenticated' });
     }
-    if (!roles.includes(req.session.user.role)) {
+    const dbUser = await User.findById(req.session.user.id);
+    if (!dbUser || !roles.includes(dbUser.role)) {
       return res.status(403).json({ success: false, message: 'Forbidden' });
     }
     next();
   };
 }
 
-/**
- * POST /api/users
- * Body: { googleId, email}
- * Create or update user based on googleId
- */
-router.post('/', requireAuth, userValidation, async (req, res) => {
-  try {
-    // 🔹 Validation check (wie bugs.js)
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array()
-      });
+export async function upsertUserFromGoogle(payload) {
+  const googleId = payload.sub;
+  const email = payload.email;
+  const name = payload.name;
+
+  // check if first user to assign admin role
+  const adminExists = await User.exists({ role: 'admin' });
+  const role = adminExists ? 'reporter' : 'admin';
+
+  const update = {
+     $set: {
+      email,
+      name,
+      lastSeen: new Date()
+    },
+    $setOnInsert: {
+      googleId,
+      role
     }
+  };
 
-    const { googleId, email } = req.body;
-
-    const options = {
-      upsert: true,
-      new: true,
-      setDefaultsOnInsert: true
-    };
-
-    // only googleId (unique)
-    const user = await User.findOneAndUpdate(
-      { googleId },
-      { email, lastSeen: new Date() },
-      options
-    );
-
-    res.json({ success: true, data: user });
-  } catch (err) {
-    console.error('Error upserting user:', err);
-    res.status(500).json({
-      success: false,
-      message: 'Error saving user',
-      error: err.message
-    });
-  }
-});
+  const options = { upsert: true, new: true, setDefaultsOnInsert: true };
+  return await User.findOneAndUpdate({ googleId }, update, options);
+}
 
 /**
  * GET /api/users/:id
  * Admin only
  */
-router.get('/:id', requireRole('admin'), userIdParamValidation, async (req, res) => {
+router.get('/:id', requireAuth, requireRole('admin'), userIdParamValidation, async (req, res) => {
   try {
-    // 🔹 Validation check
+    // Validation check
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({
@@ -136,6 +125,32 @@ router.get('/:id', requireRole('admin'), userIdParamValidation, async (req, res)
     res.status(500).json({
       success: false,
       message: 'Error fetching user',
+      error: err.message
+    });
+  }
+});
+
+/**
+ * GET /api/users
+ * Admin only – list all users
+ */
+router.get('/', requireAuth, requireRole('admin'), async (req, res) => {
+  try {
+    const users = await User.find({})
+      .select('name email role googleId createdAt lastSeen')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    res.json({
+      success: true,
+      count: users.length,
+      data: users
+    });
+  } catch (err) {
+    console.error('Error fetching users:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching users',
       error: err.message
     });
   }
