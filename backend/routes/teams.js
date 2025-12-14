@@ -2,7 +2,6 @@ import express from 'express';
 import Team from '../models/Team.js';
 import User from '../models/User.js';
 import rateLimit from 'express-rate-limit';
-import User from '../models/User.js';
 import { body, validationResult } from 'express-validator';
 import mongoose from 'mongoose';
 
