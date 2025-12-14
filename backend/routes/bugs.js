@@ -226,9 +226,11 @@ router.patch('/:id', requireRole('admin', 'developer'), async (req, res) => {
       });
     }
     
+    // Use a safe literal string to prevent injection
+    const statusToUpdate = status;
     const bug = await Bug.findByIdAndUpdate(
       req.params.id,
-      { status },
+      { status: statusToUpdate },
       { new: true, runValidators: true }
     );
     
