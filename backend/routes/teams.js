@@ -233,7 +233,7 @@ router.patch('/:id', requireRole('admin'), teamUpdateValidation, async (req, res
     // Check duplicate teamName if updated
     if (teamName) {
       const existing = await Team.findOne({
-        teamName: teamName,
+        teamName: { $eq: teamName },
         _id: { $ne: id },
       });
       if (existing) {
