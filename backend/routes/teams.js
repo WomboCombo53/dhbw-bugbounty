@@ -305,8 +305,8 @@ router.get('/', requireRole('admin'), async (req, res) => {
 
     // Build query filter
     const filter = {};
-    if (department) filter.department = new RegExp(department, 'i');
-    if (teamleader) filter.teamleader = new RegExp(teamleader, 'i');
+    if (department) filter.department = new RegExp(_.escapeRegExp(department), 'i');
+    if (teamleader) filter.teamleader = new RegExp(_.escapeRegExp(teamleader), 'i');
 
     const teams = await Team.find(filter)
       .sort({ createdAt: -1 })
