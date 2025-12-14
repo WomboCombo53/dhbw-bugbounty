@@ -1,160 +1,56 @@
 # DHBW Bug Bounty Tracker
-
 Projekt als Prüfungsleistung der Vorlesung Security by Design
 
-A React.js-based bug bounty tracking system that allows users to submit security vulnerabilities to companies and track bounties. The project includes a comprehensive CI/CD pipeline with security-first practices.
+## Setup & Installation
 
-## Features
+### Voraussetzungen
+- Ubuntu (>v24.04.3, getestet in VirtualBox)/Debian-System
+- sudo-Rechte zur Installation der notwendigen Pakete
 
-### Application
-- **Bug Submission Form**: Users can report security vulnerabilities with details including:
-  - Bug title and description
-  - Severity level (Low, Medium, High, Critical)
-  - Target company name
-  - Reporter contact information
-  - Expected bounty amount
-- **Bug Tracking Dashboard**: View all submitted bugs with status tracking
-- **Persistent Storage**: MongoDB database for bug reports
-- **REST API**: Express.js backend with comprehensive endpoints
-- **Responsive Design**: Mobile-friendly interface
-- **Real-time Updates**: Server-side persistence with instant feedback
-
-### Security & CI/CD Pipeline
-
-The project implements a comprehensive security-focused CI/CD pipeline with the following stages:
-
-#### 1. **SBOM Generation**
-- Generates Software Bill of Materials using Syft
-- CycloneDX JSON format
-- Uploaded as artifact for audit trails
-
-#### 2. **Secret Scanning**
-- Gitleaks integration for detecting hardcoded secrets
-- Scans entire git history
-- Quality gate: Pipeline fails if secrets are found
-
-#### 3. **SAST (Static Application Security Testing)**
-- CodeQL analysis for JavaScript/React code
-- Identifies security vulnerabilities in source code
-- Results uploaded to GitHub Security tab
-
-#### 4. **SCA (Software Composition Analysis)**
-- npm audit for dependency vulnerabilities
-- Trivy scanning for comprehensive vulnerability detection
-- SARIF reports uploaded to GitHub Security
-- Quality gate: Pipeline fails on CVSS >= 7.0 vulnerabilities
-
-#### 5. **Build**
-- Automated React application build with Vite
-- Build artifacts stored for deployment
-- Only proceeds if security scans pass
-
-#### 6. **Container Build & Scan**
-- Multi-stage Docker build for optimized images
-- Container pushed to GitHub Container Registry (GHCR)
-- Trivy container image scanning
-- Quality gate: Fails on HIGH/CRITICAL vulnerabilities in container
-
-#### 7. **Image Signing**
-- Cosign-based image signing using keyless signing
-- Signature verification before deployment
-- Quality gate: Deployment blocked if signature is invalid or missing
-
-#### 8. **Quality Gate**
-- Comprehensive validation of all security requirements:
-  - ✅ No secrets found
-  - ✅ No vulnerabilities with CVSS >= 7.0
-  - ✅ Valid image signature
-- Pipeline fails if any condition is not met
-
-#### 9. **Kubernetes Deployment**
-- Uses signed and verified container images
-- Includes deployment, service, and ingress manifests
-- Security hardening with Pod Security Standards
-
-## Getting Started
-
-### Prerequisites
-- Node.js 20.x or higher
-- npm or yarn
-- Docker & Docker Compose (for containerization)
-- MongoDB (included in Docker Compose setup)
-- kubectl (for Kubernetes deployment)
-
-### Local Development
-
-#### Using Docker Compose
-
-This will start MongoDB, Backend API, and Frontend together:
+### Starten der Anwendung
+Um die gesamte Umgebung (Kubernetes Cluster, Backend, Frontend, Datenbank) zu starten, führe folgenden Befehl aus:
 
 ```bash
-# Start all services
-docker-compose up -d
-
-# View logs
-docker-compose logs -f
-
-# Stop all services
-docker-compose down
+make up
 ```
 
-Services will be available at:
-- Frontend: `http://localhost:8080`
-- Backend API: `http://localhost:3000`
-- MongoDB: `localhost:27017`
+Dieser Befehl führt automatisch folgende Schritte aus:
+1. Überprüfung und Installation von Abhängigkeiten (Docker, minikube etc.)
+2. Starten von Minikube (falls nicht aktiv)
+3. Deployment der Services in den Cluster
+4. Einrichten von Port-Forwarding für den Zugriff
 
-## CI/CD Pipeline Configuration
+Nach erfolgreichem Start ist die Anwendung unter folgenden URLs erreichbar:
+- Frontend: https://localhost:8443
+- Backend API: https://localhost:3000
 
-The CI/CD pipeline is configured in `.github/workflows/ci-cd.yml` and automatically runs on:
-- Push to `main` branches
-- Pull requests to `main` branches
-- Manual workflow dispatch
+### Troubleshooting
 
-### Container Registry
+Falls Probleme beim Starten auftreten:
 
-The pipeline uses GitHub Container Registry (GHCR). Images are automatically pushed to:
+**Minikube startet nicht:**
+- Stelle sicher, dass Docker Desktop läuft.
+- Versuche `minikube delete` und anschließend erneut `make up`.
+
+**Pods werden nicht "Ready":**
+- Überprüfe den Status der Pods mit:
+  ```bash
+  kubectl get pods -n bugbounty-ns
+  ```
+- Für Details zu einem fehlerhaften Pod:
+  ```bash
+  kubectl describe pod <pod-name> -n bugbounty-ns
+  ```
+
+**Port-Forwarding schlägt fehl:**
+- Prüfe, ob die Ports 8443 oder 3000 bereits belegt sind.
+- Beende eventuell hängende `kubectl` Prozesse:
+  ```bash
+  pkill kubectl
+  ```
+
+**Bereinigen der Umgebung:**
+Um die Umgebung neu zu bauen (inkl. Docker Images):
+```bash
+make cleanbuild
 ```
-ghcr.io/<username>/<repository>:tag
-```
-
-## Security Features
-
-- **Security Headers**: X-Frame-Options, X-Content-Type-Options, X-XSS-Protection
-- **Container Security**: Non-root user, read-only filesystem, dropped capabilities
-- **Image Signing**: Cosign keyless signing with Sigstore
-- **Vulnerability Scanning**: Multi-layer scanning (dependencies, code, container)
-- **Quality Gates**: Automated enforcement of security policies
-
-## Quality Gate Conditions
-
-The pipeline enforces the following quality gates:
-
-1. **Secret Detection**: Pipeline fails if any secrets are detected in the codebase
-2. **Vulnerability Threshold**: Pipeline fails if vulnerabilities with CVSS >= 7.0 are found
-3. **Image Signature**: Deployment blocked if container image signature is invalid or missing
-
-## Technology Stack
-
-- **Frontend**: React 18, Vite
-- **Backend**: Express.js, Node.js 20
-- **Database**: MongoDB 7.0
-- **Styling**: CSS3 with responsive design
-- **Container**: Docker, Docker Compose, nginx
-- **CI/CD**: GitHub Actions
-- **Security Tools**:
-  - Gitleaks (secret scanning)
-  - CodeQL (SAST)
-  - Trivy (SCA & container scanning)
-  - Syft (SBOM generation)
-  - Cosign (image signing)
-  - Helmet.js (security headers)
-  - Express Rate Limit (DDoS protection)
-- **Deployment**: Kubernetes
-
-## License
-
-This project is created as an academic assignment for the "Security by Design" course at DHBW.
-
-## Contributing
-
-This is an academic project. For questions or suggestions, please open an issue.
