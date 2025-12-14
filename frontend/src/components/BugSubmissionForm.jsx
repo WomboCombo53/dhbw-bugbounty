@@ -78,7 +78,7 @@ function BugSubmissionForm({ onSubmit }) {
       </div>
 
       <div className="form-group">
-        <label htmlFor="productName">Company Name *</label>
+        <label htmlFor="productName">Affected Product Name *</label>
         <input
           type="text"
           id="productName"
@@ -86,7 +86,7 @@ function BugSubmissionForm({ onSubmit }) {
           value={formData.productName}
           onChange={handleChange}
           required
-          placeholder="Target company name"
+          placeholder="Target product name"
         />
       </div>
       <button type="submit" className="submit-btn">Submit Bug Report</button>

@@ -64,15 +64,15 @@ router.get('/', requireAuth, async (req, res) => {
     const filter = {};
     if (severity) filter.severity = severity;
     if (status) filter.status = status;
-    if (productName) filter.productName = new RegExp(_.escape(productName), 'i');
+    if (productName) filter.productName = new RegExp(productName, 'i');
     
-    const bugs = await Bug.find(_.escape(filter))
+    const bugs = await Bug.find(filter)
       .sort({ submittedAt: -1 })
       .limit(parseInt(limit))
       .skip(parseInt(skip))
       .lean();
     
-    const total = await Bug.countDocuments(_.escape(filter));
+    const total = await Bug.countDocuments(filter);
     
     res.json({
       success: true,
