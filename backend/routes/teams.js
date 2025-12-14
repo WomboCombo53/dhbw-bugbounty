@@ -162,7 +162,7 @@ router.post('/', requireRole('admin'), teamCreateValidation, async (req, res) =>
     const { teamName, department, description, teamleader, developers } = req.body;
 
     // Check for duplicate teamName
-    const existing = await Team.findOne({ teamName });
+    const existing = await Team.findOne({ teamName: { $eq: teamName } });
     if (existing) {
       return res.status(400).json({
         success: false,
