@@ -39,7 +39,7 @@ app.use(
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      secure: false, //process.env.NODE_ENV === "production", // Only send cookie over HTTPS in production
+      secure: true, //process.env.NODE_ENV === "production", // Only send cookie over HTTPS in production
       sameSite: "lax",
     },
   })
