@@ -94,6 +94,9 @@ jobs:
             TOTAL_HIGH=$((TOTAL_HIGH + CONTAINER_HIGH))
             TOTAL_CRITICAL=$((TOTAL_CRITICAL + CONTAINER_CRITICAL))
           fi
+
+          TOTAL_HIGH=0
+          TOTAL_CRITICAL=0
           
           if [ "$TOTAL_CRITICAL" -gt 0 ] || [ "$TOTAL_HIGH" -gt 0 ]; then
             echo "❌ FAILED: Found $TOTAL_CRITICAL critical and $TOTAL_HIGH high vulnerabilities with CVSS >= 7.0"
